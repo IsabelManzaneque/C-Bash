@@ -10,25 +10,28 @@
 
 #----------------------------------------------------------------------------------------
 
-
+hora=$(date +%H:%M:%S)
 
 # Comprueba si proceso Demonio existe y si no, realiza las acciones
 #-x solo match procesos cuyo nombre es el mismo
 if ! pgrep -x "Demonio.sh" > /dev/null 
 then
-    echo "Fausto dice: El Demonio no esta activo."
+    echo "Fausto: El Demonio no esta activo."
     # Borra ficheros y carpetas. Usando -f (--force) no nos da Error si los files no existen
     # Conveniente si en lugar de comprobar si estan, solo queremos asegurarnos de que NO estan
-    echo "Fausto dice: Borrando ficheros residuales."
+    echo "Fausto: Borrando ficheros residuales."
     rm -f procesos procesos_servicio procesos_periodicos Biblia.txt Apocalipsis SanPedro
     rm -fr Infierno
     # Los vuelve a crear vacios
-    echo "Fausto dice: Creando ficheros nuevos."
+    echo "Fausto: Creando ficheros nuevos."
     touch procesos procesos_servicio procesos_periodicos Biblia.txt SanPedro
     mkdir Infierno 
     # Lanza el Demonio en segundo plano
-    echo "Fausto dice: Lanzando Demonio en segundo plano."
+    echo "Fausto: Lanzando Demonio en segundo plano."
     exec nohup "./Demonio.sh" & # >/dev/null &   redirijir la salida y error a /dev/null?
+    # Entrada genesis en la biblia 
+    echo "$hora ---------------Génesis---------------" >> ./Biblia.txt
+    echo "$hora El demonio ha sido creado" >> ./Biblia.txt
    
 fi
 
@@ -51,8 +54,18 @@ args=("$@")
 # Case basado en el primer arg
 case "$1" in
     "run")
-        echo "Error: comando $1 sin implementar"
-        # Add your commands for Option 1 here
+        
+	if [ "$#" -eq 2 ]
+        then
+	    comando="$2"
+	    bash -c "$comando" &	
+	    pidBash="$!"
+	    # crea una entrada en la lista de procesos y la biblia
+	    echo "$pidBash '"$comando"'" >> ./procesos
+            echo "$hora El proceso $pidBash ‘"$comando"’ ha nacido." >> ./Biblia.txt
+ 	else
+	    echo "Error! $1 admite un solo parametro"
+	fi
         ;;
     "run-service")
         echo "Error: comando $1 sin implementar"
@@ -84,7 +97,7 @@ case "$1" in
     "end")
 	# Crea un fichero "Apocalipsis" en el directorio del script
         touch Apocalipsis
-	echo "Se ha creado el fichero Apocalipsis en $PWD"
+	echo "Se ha creado el fichero Apocalipsis"
         ;;
 
     *)
