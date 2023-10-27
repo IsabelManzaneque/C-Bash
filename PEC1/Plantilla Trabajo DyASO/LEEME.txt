@@ -1,0 +1,14 @@
+Instrucciones de uso de esta plantilla:
+
+1) Lo PRIMERO que debe hacer el alumno es poner su nombre en las carpetas y el informe. A continuación empezar a trabajar editando los ficheros que contiene la plantilla.
+
+2) El trabajo que debe subirse a la platforma es el archivo .tar (no zip ni rar...) resultante de empaquetar la carpeta correspondiente (dependiendo que sea la PED1 o la PED2). Recomendamos comprimir dicha carpeta DIRECTAMENTE desde la máquina virtual (usando tar por línea de órdenes o pinchando con el botón derecho del ratón sobre la carpeta y seleccionando "comprimir" y las opciones por defecto.
+
+3) Se muestra un ejemplo con un tar creado por el equipo docente y los ficheros que debe contener, asegúrese de que el contenido es el mismo.
+
+NOTA1: No es buena idea editar los ficheros fuente ni los scripts desde Windows ya que los cambios de codificación pueden producir problemas.
+
+NOTA2: Antes de enviar el fichero es una buena idea comprobar que puede desccomprimirlo y continua funcionando (no falta nada) para ello puede copiar el tar en otra carpeta, descomprimirlo con tar -xf Fichero de la práctica y ejecutar el script, de este modo estará seguro de que lo que ha enviado puede ser ejecutado por el tutor.
+
+NOTA3: Es una idea recomendable que realice copias de seguridad de los ficheros con los que trabaja fuera de la máquina virtual, sobre todo si va a restaurar una instantánea.
+
