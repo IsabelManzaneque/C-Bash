@@ -4,11 +4,6 @@
 #Si el Demonio no está vivo lo crea
 #Al leer/escribir en las listas hay que usar bloqueo para no coincidir con el Demonio
 
-# --------------------------------------------------------------------------------------
-
-# Primero Fausto y luego el demonio. Fausto, si le meten esa entrada, ejecuta el comando y escribe en el fichero de procesos servicio el comando correspondiente y ya demonio hace lo suyo
-
-#----------------------------------------------------------------------------------------
 
 hora=$(date +%H:%M:%S)
 
@@ -28,7 +23,7 @@ then
     mkdir Infierno 
     # Lanza el Demonio en segundo plano
     echo "Fausto: Lanzando Demonio en segundo plano."
-    exec nohup "./Demonio.sh" & # >/dev/null &   redirijir la salida y error a /dev/null?
+    exec nohup "./Demonio.sh" & #>/dev/null &   
     # Entrada genesis en la biblia 
     echo "$hora ---------------Génesis---------------" >> ./Biblia.txt
     echo "$hora El demonio ha sido creado" >> ./Biblia.txt
@@ -51,16 +46,16 @@ args=("$@")
 #done
 
 
-# Case basado en el primer arg
 case "$1" in
     "run")
         
 	if [ "$#" -eq 2 ]
         then
+	    # Crea una nueva entrada en la lista de procesos y en la biblia
 	    comando="$2"
 	    bash -c "$comando" &	
 	    pidBash="$!"
-	    # crea una entrada en la lista de procesos y la biblia
+	    
 	    echo "$pidBash '"$comando"'" >> ./procesos
             echo "$hora El proceso $pidBash ‘"$comando"’ ha nacido." >> ./Biblia.txt
  	else
@@ -68,16 +63,43 @@ case "$1" in
 	fi
         ;;
     "run-service")
-        echo "Error: comando $1 sin implementar"
-        # Add your commands for Option 2 here
-        ;;
+        # Crea una nueva entrada en la lista de procesos servicio y en la biblia
+        if [ "$#" -eq 2 ]
+        then
+	    comando="$2"
+	    bash -c "$comando" &	
+	    pidBash="$!"
+	    
+	    echo "$pidBash '"$comando"'" >> ./procesos_servicio
+            echo "$hora El proceso $pidBash ‘"$comando"’ ha nacido." >> ./Biblia.txt
+ 	else
+	    echo "Error! $1 admite un solo parametro"
+	fi
+	;;
     "run-periodic")
-        echo "Error: comando $1 sin implementar"
-        # Add your commands for Option 3 here
-        ;;
+	# Crea una nueva entrada en la lista de procesos periodicos y en la biblia
+        if [ "$#" -eq 3 ]
+        then
+	    T="$2"
+	    comando="$3"
+	    bash -c "$comando" &	
+	    pidBash="$!"
+	    tArranque=$(ps -p $pidBash -o etimes=)	
+	  
+	    echo "$tArranque $T $pidBash '"$comando"'" >> ./procesos_periodicos
+            echo "$hora El proceso $pidBash ‘"$comando"’ ha nacido." >> ./Biblia.txt
+ 	else
+	    echo "Error! $1 admite un solo parametro"
+	fi
+	;;
     "list")
-        echo "Error: comando $1 sin implementar"
-        # Add your commands for Option 3 here
+        # Muestra una lista de los procesos creados
+        if [ "$#" -eq 1 ]
+        then
+	    cat procesos procesos_servicio procesos_periodicos
+ 	else
+	    echo "Error! $1 admite un solo parametro"
+	fi
         ;;
     "help")
 	# Muestra los comandos disponibles
@@ -91,18 +113,28 @@ case "$1" in
 	echo "* end"
         ;;
     "stop")
-        echo "Error: comando $arg sin implementar"
-        # Add your commands for Option 3 here
+	# Si existe el proceso, crea un archivo con su pid en Infierno
+        if [ "$#" -eq 2 ]
+        then
+	    pid="$2"	    
+	    if grep -q "$pid" "procesos" || grep -q "$pid" "procesos_servicio" || grep -q "$pid" "procesos_periodicos"
+            then
+                touch ./Infierno/"$pid"	        
+	    else
+	        echo "Error! No existe el proceso $pid. Consulte la lista de procesos con './Fausto.sh list'" 
+	    fi	    
+ 	else
+	    echo "Error! $1 admite un solo parametro"
+	fi
         ;;
     "end")
-	# Crea un fichero "Apocalipsis" en el directorio del script
+        # Crea el fichero Apocalipsis
         touch Apocalipsis
 	echo "Se ha creado el fichero Apocalipsis"
         ;;
 
-    *)
-	
-        echo "Error! no existe la orden '$1', consulte las órdenes disponibles con ./Fausto.sh help"
+    *)	
+        echo "Error! No existe la orden '$1'. Consulte las órdenes disponibles con ./Fausto.sh help"
         exit 1
         ;;
 esac

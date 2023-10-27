@@ -1,2 +1,6 @@
-10:05:47 ---------------Génesis---------------
-10:05:47 El demonio ha sido creado
+18:25:17 ---------------Génesis---------------
+18:25:17 El demonio ha sido creado
+18:25:17 El proceso 27455 ‘sleep 1; echo hola’ ha nacido.
+18:25:19 El proceso 27464 ‘sleep 1; echo hola’ ha nacido.
+18:25:22 El proceso 27474 ‘sleep 1; echo hola’ ha nacido.
+18:25:17 ---------------Apocalipsis---------------
