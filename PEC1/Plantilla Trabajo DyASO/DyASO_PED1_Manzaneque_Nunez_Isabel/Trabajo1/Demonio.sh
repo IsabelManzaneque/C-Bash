@@ -34,21 +34,22 @@ echo "$hora ---------------Apocalipsis---------------" >> ./Biblia.txt
 
 # terminar todos los procesos de todas las listas
 
-archivos=("procesos" "procesos_servicio") # "procesos_periodicos")
+archivos=("procesos" "procesos_servicio" "procesos_periodicos")
 
 for archivo in "${archivos[@]}"
 do  
-     
-    # Itera por cada línea del archivo y obtiene el PID (primera palabra de cada linea)
-    for pid in $(awk NF=1 "$archivo")
+    n=1
+    if [ "$archivo" == "procesos_periodicos" ] 
+    then
+	n=3
+    fi
+    # Itera por cada línea del archivo y obtiene el PID (primera o 
+    # tercera palabra de cada linea en funcion del archivo)
+    cat "$archivo" | while read line
     do
-        echo "Terminando proceso con PID: $pid"
-        kill "$pid"
-    done
-
-    #if grep -q "$pid" "$archivo"; then
-     #   echo "El PID $pid está presente en el archivo: $archivo"
-    #fi
+       pid=$(echo $line | awk -v N=$n '{print $N}')
+       kill "$pid"
+    done	
 done
 
 

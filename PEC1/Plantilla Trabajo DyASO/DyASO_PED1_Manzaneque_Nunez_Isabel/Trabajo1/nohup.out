@@ -1,15 +1,17 @@
 Demonio: comenzando...
-El pid es: 
-El pid es: 27391
-27399
-27406
-27413
-18:22:49 Se acabo el mundo.
-Demonio: comenzando...
-Terminando proceso con PID: 27455
-./Demonio.sh: línea 47: kill: (27455) - No existe el proceso
-Terminando proceso con PID: 27464
-./Demonio.sh: línea 47: kill: (27464) - No existe el proceso
-Terminando proceso con PID: 27474
-./Demonio.sh: línea 47: kill: (27474) - No existe el proceso
-18:25:17 Se acabo el mundo.
+=====================================
+ AQUIIIII: 29768
+./Demonio.sh: línea 51: kill: (29768) - No existe el proceso
+ AQUIIIII: 29781
+./Demonio.sh: línea 51: kill: (29781) - No existe el proceso
+=====================================
+ AQUIIIII: 29790
+./Demonio.sh: línea 51: kill: (29790) - No existe el proceso
+ AQUIIIII: 29797
+./Demonio.sh: línea 51: kill: (29797) - No existe el proceso
+=====================================
+ AQUIIIII: 29807
+./Demonio.sh: línea 51: kill: (29807) - No existe el proceso
+ AQUIIIII: 29815
+./Demonio.sh: línea 51: kill: (29815) - No existe el proceso
+10:29:40 Se acabo el mundo.
