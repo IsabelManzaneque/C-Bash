@@ -23,7 +23,7 @@ then
     mkdir Infierno 
     # Lanza el Demonio en segundo plano
     echo "Fausto: Lanzando Demonio en segundo plano."
-    exec nohup "./Demonio.sh" >/dev/null &   
+    exec nohup "./Demonio.sh" & #>/dev/null &   
     # Entrada genesis en la biblia 
     echo "$hora ---------------Génesis---------------" >> ./Biblia.txt
     echo "$hora El demonio ha sido creado" >> ./Biblia.txt
