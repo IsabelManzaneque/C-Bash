@@ -17,7 +17,7 @@ hora=$(date +%H:%M:%S)
 # demonio es un bucle hile infinito hasta que se notifique el fin. Una de las cosas que hace en el bucle es abrir el fichero de servicios y por cada linea obtiene el pid, comprueba si existe un proceso corriendo con ese pid y en caso negativo lo lanza y actualiza los datos (si cambia el pid volver a lanzarlo, hay que actualizar el pid antiguo por el nuevo). Si esta corriendo, lo ignora y pasa al siguiente
 
 # Bucle que se ejecuta mientras no se detecte el fichero apocalipsis
-# -f comprueba si un file existe en el directorio del script
+# -f comprueba si un file existe en el directorio del scrip
 
 echo "Demonio: comenzando..."
 while [ ! -f "Apocalipsis" ]
@@ -33,7 +33,6 @@ done
 echo "$hora ---------------Apocalipsis---------------" >> ./Biblia.txt
 
 # terminar todos los procesos de todas las listas
-
 archivos=("procesos" "procesos_servicio" "procesos_periodicos")
 
 for archivo in "${archivos[@]}"
@@ -48,16 +47,25 @@ do
     cat "$archivo" | while read line
     do
        pid=$(echo $line | awk -v N=$n '{print $N}')
-       kill "$pid"
+      
+       if kill -0 "$pid" >/dev/null 
+       then
+           echo "$hora El proceso $pid ha terminado" >> ./Biblia.txt
+           kill "$pid"
+       else
+           echo "$hora No existe el proceso $pid" >> ./Biblia.txt
+       fi
     done	
 done
 
 
-# borrar listas, Apocalipsis e Infierno (sol oquedaran los scripts y la biblia)
+# borrar listas, Apocalipsis e Infierno 
+rm -f procesos procesos_servicio procesos_periodicos Apocalipsis SanPedro
+rm -fr Infierno
 
 # Termina su ejecucion
 
-echo "$hora Se acabo el mundo."
+echo "$hora Se acabo el mundo." >> ./Biblia.txt
 
 
 

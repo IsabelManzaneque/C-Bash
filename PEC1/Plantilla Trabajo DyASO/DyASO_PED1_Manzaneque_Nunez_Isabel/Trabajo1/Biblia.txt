@@ -1,9 +1,10 @@
-10:29:40 ---------------Génesis---------------
-10:29:40 El demonio ha sido creado
-10:29:40 El proceso 29768 ‘sleep 1; echo hola’ ha nacido.
-10:29:44 El proceso 29781 ‘sleep 1; echo hola’ ha nacido.
-10:29:49 El proceso 29790 ‘sleep 1; echo hola’ ha nacido.
-10:29:51 El proceso 29797 ‘sleep 1; echo hola’ ha nacido.
-10:29:55 El proceso 29807 ‘sleep 1; echo hola’ ha nacido.
-10:29:57 El proceso 29815 ‘sleep 1; echo hola’ ha nacido.
-10:29:40 ---------------Apocalipsis---------------
+10:06:23 ---------------Génesis---------------
+10:06:23 El demonio ha sido creado
+10:06:23 El proceso 31548 ‘sleep 1; echo hola’ ha nacido.
+10:07:16 El proceso 31616 ‘sleep 1; echo hola’ ha nacido.
+10:07:27 El proceso 31634 ‘sleep 1; echo hola’ ha nacido.
+10:06:23 ---------------Apocalipsis---------------
+10:06:23 No existe el proceso 31548
+10:06:23 No existe el proceso 31634
+10:06:23 No existe el proceso 31616
+10:06:23 Se acabo el mundo.
