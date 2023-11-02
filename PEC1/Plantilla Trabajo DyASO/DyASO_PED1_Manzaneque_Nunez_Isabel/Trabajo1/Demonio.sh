@@ -14,7 +14,6 @@
 
 hora=$(date +%H:%M:%S)
 archivos=("procesos" "procesos_servicio" "procesos_periodicos")
-# demonio es un bucle hile infinito hasta que se notifique el fin. Una de las cosas que hace en el bucle es abrir el fichero de servicios y por cada linea obtiene el pid, comprueba si existe un proceso corriendo con ese pid y en caso negativo lo lanza y actualiza los datos (si cambia el pid volver a lanzarlo, hay que actualizar el pid antiguo por el nuevo). Si esta corriendo, lo ignora y pasa al siguiente
 
 # Bucle que se ejecuta mientras no se detecte el fichero apocalipsis
 # -f comprueba si un file existe en el directorio del scrip
@@ -66,8 +65,39 @@ do
             do
    	        pid=$(echo $line | awk -v N=1 '{print $N}')
 		
+		if [ -e "./Infierno/$pid" ]
+                # el proceso esta en el infierno
+                then    
+                    # terminar arbol del proceso
+		    arbolProcesos=$(pstree -p "$pid" | grep -o '[0-9]\+')
+                    for proceso in $arbolProcesos
+                    do
+                        kill -15 "$proceso"
+                    done
+                    # eliminar entrada de la lista
+	            sed -i "/$line/d" "$archivo"
+                    # eliminar fichero del infierno
+		    rm -f "./Infierno/$pid"
+                    echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
+
+	        else
+		# el proceso NO esta en el infierno  		    
+	            if ! kill -0 "$pid" >/dev/null 
+	            then
+		        # si el proceso no se esta ejecutando lo resucita
+                        # ejecuta el comando
+			comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
+		        bash -c "$comandoProceso" &
+                        # sustituye el pid
+			pidNuevo="$!"
+                        sed -i -e "s/$pid/$pidNuevo/g" ./procesos_servicio
+			
+                        echo "$hora El proceso $line resucita con el pid $pidNuevo" >> ./Biblia.txt              
+	            fi	
+	        fi		
             done
 	fi
+
 
         if [ "$archivo" == "procesos_periodicos" ] 
 	then

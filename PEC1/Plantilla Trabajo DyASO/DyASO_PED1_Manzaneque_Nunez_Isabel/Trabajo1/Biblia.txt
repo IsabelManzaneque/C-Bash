@@ -1,8 +1,10 @@
-15:39:00 ---------------Génesis---------------
-15:39:00 El demonio ha sido creado
-15:39:00 El proceso 18789 ‘sleep 1; echo hola’ ha nacido.
-15:39:00 El proceso 18789 'sleep 1; echo hola' ha terminado
-15:39:03 El proceso 18830 ‘sleep 1; echo hola’ ha nacido.
-15:39:00 El proceso 18830 'sleep 1; echo hola' ha terminado
-15:39:00 ---------------Apocalipsis---------------
-15:39:00 Se acabo el mundo.
+16:25:27 ---------------Génesis---------------
+16:25:27 El demonio ha sido creado
+16:25:27 El proceso 21111 ‘sleep 30; echo hola’ ha nacido.
+16:25:27 El proceso 21111 'sleep 30; echo hola' resucita con el pid 21428
+16:25:27 El proceso 21428 'sleep 30; echo hola' resucita con el pid 21736
+16:25:27 El proceso 21736 'sleep 30; echo hola' resucita con el pid 22046
+16:25:27 El proceso 22046 'sleep 30; echo hola' resucita con el pid 22359
+16:25:27 ---------------Apocalipsis---------------
+16:25:27 El proceso 22359 'sleep 30; echo hola' ha terminado
+16:25:27 Se acabo el mundo.
