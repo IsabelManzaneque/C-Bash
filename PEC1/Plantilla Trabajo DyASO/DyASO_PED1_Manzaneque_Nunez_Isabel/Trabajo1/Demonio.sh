@@ -25,139 +25,91 @@ do
     # Itera por las listas realizando acciones
     for archivo in "${archivos[@]}"
     do
-	# PROCESOS
-        if [ "$archivo" == "procesos" ] 
-	then
-	    cat "$archivo" | while read line
-            do
-   	        pid=$(echo $line | awk -v N=1 '{print $N}')
-		
-		if [ -e "./Infierno/$pid" ]
-                # el proceso esta en el infierno
-                then    
-                    # terminar arbol del proceso
-		    arbolProcesos=$(pstree -p "$pid" | grep -o '[0-9]\+')
-                    for proceso in $arbolProcesos
-                    do
-                        kill -15 "$proceso"
-                    done
-                    # eliminar entrada de la lista
-	            sed -i "/$line/d" "$archivo"
-                    # eliminar fichero del infierno
-		    rm -f "./Infierno/$pid"
-                    echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
-	        else
-		# el proceso NO esta en el infierno  		    
-	            if ! kill -0 "$pid" >/dev/null 
-	            then
-		        # si el proceso no se esta ejecutando lo elimina de la lista
-			sed -i "/$line/d" "$archivo"	
-                        echo "$hora El proceso $line ha terminado" >> ./Biblia.txt              
-	            fi		    
-	        fi
-            done	    
-	fi
-        
-	# PROCESOS SERVICIO
-        if [ "$archivo" == "procesos_servicio" ] 
-	then
-	    cat "$archivo" | while read line
-            do
-   	        pid=$(echo $line | awk -v N=1 '{print $N}')
-		
-		if [ -e "./Infierno/$pid" ]
-                # el proceso esta en el infierno
-                then    
-                    # terminar arbol del proceso
-		    arbolProcesos=$(pstree -p "$pid" | grep -o '[0-9]\+')
-                    for proceso in $arbolProcesos
-                    do
-                        kill -15 "$proceso"
-                    done
-                    # eliminar entrada de la lista
-	            sed -i "/$line/d" "$archivo"
-                    # eliminar fichero del infierno
-		    rm -f "./Infierno/$pid"
-                    echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
-
-	        else
-		# el proceso NO esta en el infierno  		    
-	            if ! kill -0 "$pid" >/dev/null 
-	            then
-		        # si el proceso no se esta ejecutando lo resucita
-                        # ejecuta el comando
-			comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
-		        bash -c "$comandoProceso" &
-                        # sustituye el pid
-			pidNuevo="$!"
-                        sed -i -e "s/$pid/$pidNuevo/g" ./procesos_servicio
-			
-                        echo "$hora El proceso $line resucita con el pid $pidNuevo" >> ./Biblia.txt              
-	            fi	
-	        fi		
-            done
-	fi
-
-	# PROCESOS PERIODICOS
+        n=1
         if [ "$archivo" == "procesos_periodicos" ] 
-	then
-	    cat "$archivo" | while read line
-            do
-   	        pid=$(echo $line | awk -v N=3 '{print $N}')
-                
-	        if [ -e "./Infierno/$pid" ]
-                # el proceso esta en el infierno
-                then    
-                    # terminar arbol del proceso
-		    arbolProcesos=$(pstree -p "$pid" | grep -o '[0-9]\+')
-                    for proceso in $arbolProcesos
-                    do
-                        kill -15 "$proceso"
-                    done
-                    # eliminar entrada de la lista
-	            sed -i "/$line/d" "$archivo"
-                    # eliminar fichero del infierno
-		    rm -f "./Infierno/$pid"
-                    echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
+        then
+	    n=3
+        fi
+    
+    
+        cat "$archivo" | while read line
+        do
+            pid=$(echo $line | awk -v N=$n '{print $N}')
+		
+            # el proceso esta en el infierno, todos realizan la misma accion
+            if [ -e "./Infierno/$pid" ]           
+            then    
+                # terminar arbol del proceso
+                arbolProcesos=$(pstree -p "$pid" | grep -o '[0-9]\+')
+                for proceso in $arbolProcesos
+                do
+                    kill -15 "$proceso"
+                done
+                # eliminar entrada de la lista
+	        sed -i "/$line/d" "$archivo"
+                # eliminar fichero del infierno
+	        rm -f "./Infierno/$pid"
+                echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
+           
+            # el proceso no esta en el infierno, acciones distintas
+	    else
+               
+                # PROCESOS -----------------------------------------------------
+                # si no se esta ejecutando lo elimina de la lista
+                if ! kill -0 "$pid" >/dev/null && [ "$archivo" == "procesos" ] 
+                then 
+                    sed -i "/$line/d" "$archivo"	
+                    echo "$hora El proceso $line ha terminado" >> ./Biblia.txt  
+                fi
+	
+                # PROCESOS SERVICIO -------------------------------------------- 
+                # si no se esta ejecutando lo resucita
+                if ! kill -0 "$pid" >/dev/null && [ "$archivo" == "procesos_servicio" ] 
+	        then
 
-	        else
-		# el proceso NO esta en el infierno  	                    
-		   
-		    vectorLine=($line)                                      
+                    # ejecuta el comando
+		    comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
+	            bash -c "$comandoProceso" &
+                    # sustituye el pid
+		    pidNuevo="$!"
+                    sed -i -e "s/$pid/$pidNuevo/g" ./procesos_servicio
+		
+                    echo "$hora El proceso $line resucita con el pid $pidNuevo" >> ./Biblia.txt             
+	        fi	       
+
+	        # PROCESOS PERIODICOS -------------------------------------------
+                if [ "$archivo" == "procesos_periodicos" ] 
+                then   
+                    vectorLine=($line)                                      
                                         
                     # si el proceso no se esta ejecutando y el contador es mayor o igual al periodo         
 	            if ! kill -0 "$pid" >/dev/null && [ "${vectorLine[0]}" -ge "${vectorLine[1]}" ]
 	            then
 		        
 		        # volver a lanzar el proceso
-			comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
+		        comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
 		        bash -c "$comandoProceso" &
 			
-			#poner contador a 0                                         
+		        #poner contador a 0                                         
                         vectorLine[0]=0
                         newLine="${vectorLine[*]}"
                         sed -i -e "s/$line/$newLine/g" ./procesos_periodicos  
 
                         # sustituye el pid
-			pidNuevo="$!"
+		        pidNuevo="$!"
                         sed -i -e "s/$pid/$pidNuevo/g" ./procesos_periodicos	                      
 
                         echo "$hora El proceso "$pid" '"$comandoProceso"’ se ha reencarnado en el pid $pidNuevo" >> ./Biblia.txt 
 	            
-		    else
-		
+		    else		
 		        # incrementar contador     	    
                         ((vectorLine[0]++))                      
                         newLine="${vectorLine[*]}"		        
-                        sed -i -e "s/$line/$newLine/g" ./procesos_periodicos
-              
-	            fi	
-                    
-		    
+                        sed -i -e "s/$line/$newLine/g" ./procesos_periodicos              
+	            fi			    
 	        fi
-            done
-	fi
-
+            fi
+        done
     done   
 
     sleep 1
