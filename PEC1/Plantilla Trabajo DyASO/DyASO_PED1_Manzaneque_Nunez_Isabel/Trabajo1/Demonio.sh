@@ -25,7 +25,7 @@ do
     # Itera por las listas realizando acciones
     for archivo in "${archivos[@]}"
     do
-
+	# PROCESOS
         if [ "$archivo" == "procesos" ] 
 	then
 	    cat "$archivo" | while read line
@@ -58,7 +58,7 @@ do
             done	    
 	fi
         
-
+	# PROCESOS SERVICIO
         if [ "$archivo" == "procesos_servicio" ] 
 	then
 	    cat "$archivo" | while read line
@@ -98,14 +98,63 @@ do
             done
 	fi
 
-
+	# PROCESOS PERIODICOS
         if [ "$archivo" == "procesos_periodicos" ] 
 	then
 	    cat "$archivo" | while read line
             do
    	        pid=$(echo $line | awk -v N=3 '{print $N}')
                 
+	        if [ -e "./Infierno/$pid" ]
+                # el proceso esta en el infierno
+                then    
+                    # terminar arbol del proceso
+		    arbolProcesos=$(pstree -p "$pid" | grep -o '[0-9]\+')
+                    for proceso in $arbolProcesos
+                    do
+                        kill -15 "$proceso"
+                    done
+                    # eliminar entrada de la lista
+	            sed -i "/$line/d" "$archivo"
+                    # eliminar fichero del infierno
+		    rm -f "./Infierno/$pid"
+                    echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
 
+	        else
+		# el proceso NO esta en el infierno  	                    
+		   
+		    vectorLine=($line)                                      
+                                        
+                    # si el proceso no se esta ejecutando y el contador es mayor o igual al periodo         
+	            if ! kill -0 "$pid" >/dev/null && [ "${vectorLine[0]}" -ge "${vectorLine[1]}" ]
+	            then
+		        
+		        # volver a lanzar el proceso
+			comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
+		        bash -c "$comandoProceso" &
+			
+			#poner contador a 0                                         
+                        vectorLine[0]=0
+                        newLine="${vectorLine[*]}"
+                        sed -i -e "s/$line/$newLine/g" ./procesos_periodicos  
+
+                        # sustituye el pid
+			pidNuevo="$!"
+                        sed -i -e "s/$pid/$pidNuevo/g" ./procesos_periodicos	                      
+
+                        echo "$hora El proceso "$pid" '"$comandoProceso"’ se ha reencarnado en el pid $pidNuevo" >> ./Biblia.txt 
+	            
+		    else
+		
+		        # incrementar contador     	    
+                        ((vectorLine[0]++))                      
+                        newLine="${vectorLine[*]}"		        
+                        sed -i -e "s/$line/$newLine/g" ./procesos_periodicos
+              
+	            fi	
+                    
+		    
+	        fi
             done
 	fi
 
