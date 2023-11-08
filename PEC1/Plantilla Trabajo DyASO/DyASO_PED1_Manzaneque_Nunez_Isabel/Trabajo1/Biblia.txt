@@ -1,23 +1,6 @@
-18:36:51 ---------------Génesis---------------
-18:36:51 El demonio ha sido creado
-18:36:51 El proceso 9256 ‘sleep 10; echo hola’ ha nacido.
-18:37:01 El proceso 9373 ‘sleep 10; echo hola’ ha nacido.
-18:37:14 El proceso 9576 ‘sleep 10; echo hola’ ha nacido.
-18:36:51 El proceso 9256 'sleep 10; echo hola’ se ha reencarnado en el pid 9725
-18:36:51 El proceso 9373 'sleep 10; echo hola’ se ha reencarnado en el pid 9736
-18:37:26 El proceso 9805 ‘sleep 10; echo hola’ ha nacido.
-18:36:51 El proceso 9736 'sleep 10; echo hola’ se ha reencarnado en el pid 10217
-18:36:51 El proceso 9576 'sleep 10; echo hola’ se ha reencarnado en el pid 10274
-18:36:51 El proceso 9725 'sleep 10; echo hola’ se ha reencarnado en el pid 10457
-18:36:51 El proceso 10217 'sleep 10; echo hola’ se ha reencarnado en el pid 10723
-18:36:51 El proceso 10274 'sleep 10; echo hola’ se ha reencarnado en el pid 11010
-18:36:51 El proceso 10457 'sleep 10; echo hola’ se ha reencarnado en el pid 11194
-18:36:51 El proceso 10723 'sleep 10; echo hola’ se ha reencarnado en el pid 11228
-18:36:51 El proceso 9805 'sleep 10; echo hola’ se ha reencarnado en el pid 11266
-18:36:51 El proceso 11228 'sleep 10; echo hola’ se ha reencarnado en el pid 11729
-18:36:51 El proceso 11010 'sleep 10; echo hola’ se ha reencarnado en el pid 11763
-18:36:51 El proceso 27 60 11266 'sleep 10; echo hola' ha terminado
-18:36:51 El proceso 11194 'sleep 10; echo hola’ se ha reencarnado en el pid 11957
-18:36:51 El proceso 11729 'sleep 10; echo hola’ se ha reencarnado en el pid 12199
-18:36:51 ---------------Apocalipsis---------------
-18:36:51 Se acabo el mundo.
+20:17:14 ---------------Génesis---------------
+20:17:14 El demonio ha sido creado
+20:17:14 El proceso 9929 'sleep 30; echo hola' ha nacido.
+20:17:14 El proceso 9929 'sleep 30; echo hola' ha terminado
+20:17:14 ---------------Apocalipsis---------------
+20:17:14 Se acabo el mundo.

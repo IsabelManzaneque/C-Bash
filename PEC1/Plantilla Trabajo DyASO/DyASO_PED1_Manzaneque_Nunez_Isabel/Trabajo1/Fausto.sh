@@ -11,39 +11,22 @@ hora=$(date +%H:%M:%S)
 #-x solo match procesos cuyo nombre es el mismo
 if ! pgrep -x "Demonio.sh" > /dev/null 
 then
-    echo "Fausto: El Demonio no esta activo."
+    echo "----------Comenzando-----------"
     # Borra ficheros y carpetas. Usando -f (--force) no nos da Error si los files no existen
-    # Conveniente si en lugar de comprobar si estan, solo queremos asegurarnos de que NO estan
-    echo "Fausto: Borrando ficheros residuales."
+    # Conveniente si en lugar de comprobar si estan, solo queremos asegurarnos de que NO estan 
     rm -f procesos procesos_servicio procesos_periodicos Biblia.txt Apocalipsis SanPedro
     rm -fr Infierno
     # Los vuelve a crear vacios
-    echo "Fausto: Creando ficheros nuevos."
     touch procesos procesos_servicio procesos_periodicos Biblia.txt SanPedro
     mkdir Infierno 
-    # Lanza el Demonio en segundo plano
-    echo "Fausto: Lanzando Demonio en segundo plano."
-    exec nohup "./Demonio.sh" & #>/dev/null &   
+    # Lanza el Demonio en segundo plano 
+    exec nohup "./Demonio.sh" >/dev/null &   
     # Entrada genesis en la biblia 
     echo "$hora ---------------Génesis---------------" >> ./Biblia.txt
     echo "$hora El demonio ha sido creado" >> ./Biblia.txt
    
 fi
 
-
-# Guarda los argumentos en un array
-args=("$@")
-
-#echo "Numero de argumentos: $#"
-#echo "Todos los argumentos como cadena: $*"
-#echo "Todos los argumentos como palabras separadas: $@"
-#echo "Todos los argumentos del array: ${args[@]}"
-#echo "Primer argumento: $1"
-#echo "Primer argumento del array: ${args[0]}"
-
-#for arg in "${args[@]}"; do
-#    echo "Iterando por argumento: $arg"
-#done
 
 
 case "$1" in
@@ -56,8 +39,8 @@ case "$1" in
 	    bash -c "$comando" &	
 	    pidBash="$!"
 	    
-	    echo "$pidBash '"$comando"'" >> ./procesos
-            echo "$hora El proceso $pidBash ‘"$comando"’ ha nacido." >> ./Biblia.txt
+	    flock SanPedro -c "echo \"$pidBash '$comando'\" >> ./procesos"
+            flock SanPedro -c "echo \"$hora El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi
@@ -70,8 +53,8 @@ case "$1" in
 	    bash -c "$comando" &	
 	    pidBash="$!"
 	    
-	    echo "$pidBash '"$comando"'" >> ./procesos_servicio
-            echo "$hora El proceso $pidBash ‘"$comando"’ ha nacido." >> ./Biblia.txt
+	    echo "$pidBash '$comando'" >> ./procesos_servicio
+            echo "$hora El proceso $pidBash '$comando' ha nacido." >> ./Biblia.txt
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi
@@ -86,8 +69,8 @@ case "$1" in
 	    pidBash="$!"
 	    tArranque=$(ps -p $pidBash -o etimes=)	
 	  
-	    echo "$tArranque $T $pidBash '"$comando"'" >> ./procesos_periodicos
-            echo "$hora El proceso $pidBash ‘"$comando"’ ha nacido." >> ./Biblia.txt
+	    echo "$tArranque $T $pidBash '$comando'" >> ./procesos_periodicos
+            echo "$hora El proceso $pidBash '$comando' ha nacido." >> ./Biblia.txt
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi

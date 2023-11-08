@@ -11,6 +11,12 @@
 #Fin bucle
 
 #---------------------------------------------------
+# SanPedro es como una llave, si Demonio hace flock SanPedro porque va a escribir algo y luego Fausto hace flock SanPedro antes de escribir algo, Fausto no podra bloquear SanPedro antes que demonio lo suelte. Anadir en lecturas y escrituras de fausto la orden flock san pedro. En demonio no hacerlo al empezar el while o se bloquea para siempre, solo atomico en lecturas y escrituras
+
+#En SanPedro no se escribe nada. Cuando vaya a ejecutar algo que escribe en un fichero, que puede sobreescribir otro, usar flock SanPedro xxxx. El flock se libera solo cuando acaba la accion que lo ha bloqueado
+# flock [options] file|directory command [arguments] -> si le pasas algo que lleva argumentos flock SanPedro script param1 param2
+# flock [options] file|directory -c command
+
 
 hora=$(date +%H:%M:%S)
 archivos=("procesos" "procesos_servicio" "procesos_periodicos")
@@ -18,7 +24,6 @@ archivos=("procesos" "procesos_servicio" "procesos_periodicos")
 # Bucle que se ejecuta mientras no se detecte el fichero apocalipsis
 # -f comprueba si un file existe en el directorio del scrip
 
-echo "Demonio: comenzando..."
 while [ ! -f "Apocalipsis" ]
 do
        
@@ -72,7 +77,7 @@ do
 	            bash -c "$comandoProceso" &
                     # sustituye el pid
 		    pidNuevo="$!"
-                    sed -i -e "s/$pid/$pidNuevo/g" ./procesos_servicio
+                    sed -i -e "s/$pid/$pidNuevo/g" "$archivo"
 		
                     echo "$hora El proceso $line resucita con el pid $pidNuevo" >> ./Biblia.txt             
 	        fi	       
@@ -93,11 +98,11 @@ do
 		        #poner contador a 0                                         
                         vectorLine[0]=0
                         newLine="${vectorLine[*]}"
-                        sed -i -e "s/$line/$newLine/g" ./procesos_periodicos  
+                        sed -i -e "s/$line/$newLine/g" "$archivo"  
 
                         # sustituye el pid
 		        pidNuevo="$!"
-                        sed -i -e "s/$pid/$pidNuevo/g" ./procesos_periodicos	                      
+                        sed -i -e "s/$pid/$pidNuevo/g" "$archivo"                      
 
                         echo "$hora El proceso "$pid" '"$comandoProceso"’ se ha reencarnado en el pid $pidNuevo" >> ./Biblia.txt 
 	            
@@ -105,7 +110,7 @@ do
 		        # incrementar contador     	    
                         ((vectorLine[0]++))                      
                         newLine="${vectorLine[*]}"		        
-                        sed -i -e "s/$line/$newLine/g" ./procesos_periodicos              
+                        sed -i -e "s/$line/$newLine/g" "$archivo"              
 	            fi			    
 	        fi
             fi
@@ -115,6 +120,7 @@ do
     sleep 1
       
 done
+
 
 
 # llega el Apocalipsis
@@ -146,7 +152,7 @@ done
 
 
 # borrar listas, Apocalipsis e Infierno 
-rm -f procesos procesos_servicio procesos_periodicos Apocalipsis SanPedro nohup.out
+rm -f procesos procesos_servicio procesos_periodicos Apocalipsis SanPedro 
 rm -fr Infierno
 
 # Termina su ejecucion
