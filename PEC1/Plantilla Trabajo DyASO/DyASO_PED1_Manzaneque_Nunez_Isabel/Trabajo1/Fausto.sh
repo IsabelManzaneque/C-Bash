@@ -4,9 +4,6 @@
 #Si el Demonio no está vivo lo crea
 #Al leer/escribir en las listas hay que usar bloqueo para no coincidir con el Demonio
 
-
-hora=$(date +%H:%M:%S)
-
 # Comprueba si proceso Demonio existe y si no, realiza las acciones
 #-x solo match procesos cuyo nombre es el mismo
 if ! pgrep -x "Demonio.sh" > /dev/null 
@@ -23,8 +20,8 @@ then
     nohup ./Demonio.sh >/dev/null &   
     # Entrada genesis en la biblia 
     flock SanPedro -c "{
-                        echo \"$hora ---------------Génesis---------------\" 
-                        echo \"$hora El demonio ha sido creado\" 
+                        echo \"$(date +%H:%M:%S) ---------------Génesis---------------\" 
+                        echo \"$(date +%H:%M:%S) El demonio ha sido creado\" 
                        } >> ./Biblia.txt"
    
 fi
@@ -42,7 +39,7 @@ case "$1" in
 	    pidBash="$!"
 	    
 	    flock SanPedro -c "echo \"$pidBash '$comando'\" >> ./procesos"
-            flock SanPedro -c "echo \"$hora El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
+            flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi
@@ -56,7 +53,7 @@ case "$1" in
 	    pidBash="$!"
 	    
 	    flock SanPedro -c "echo \"$pidBash '$comando'\" >> ./procesos_servicio"
-            flock SanPedro -c "echo \"$hora El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
+            flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi
@@ -71,7 +68,7 @@ case "$1" in
 	    pidBash="$!"
 	  
 	    flock SanPedro -c "echo \"0 $T $pidBash '$comando'\" >> ./procesos_periodicos"
-            flock SanPedro -c "echo \"$hora El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
+            flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi

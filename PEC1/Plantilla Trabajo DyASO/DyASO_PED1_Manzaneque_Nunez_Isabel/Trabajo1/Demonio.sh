@@ -18,7 +18,7 @@
 # flock [options] file|directory -c command
 
 
-hora=$(date +%H:%M:%S)
+
 archivos=("procesos" "procesos_servicio" "procesos_periodicos")
 
 # Bucle que se ejecuta mientras no se detecte el fichero apocalipsis
@@ -54,7 +54,7 @@ do
                 # eliminar entrada de la lista y fichero del infierno       
 	        flock SanPedro -c "sed -i \"\~$line~d\" \"$archivo\""
 	        flock SanPedro -c "rm -f \"./Infierno/$pid\""
-                flock SanPedro -c "echo \"$hora El proceso $line ha terminado\" >> ./Biblia.txt"
+                flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $line ha terminado\" >> ./Biblia.txt"
                 
             # el proceso no esta en el infierno, acciones distintas
 	    else
@@ -64,7 +64,7 @@ do
                 if ! kill -0 "$pid" >/dev/null && [ "$archivo" == "procesos" ] 
                 then         
                     flock SanPedro -c "sed -i \"\~$line~d\" \"$archivo\""	
-                    flock SanPedro -c "echo \"$hora El proceso $line ha terminado\" >> ./Biblia.txt"  
+                    flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $line ha terminado\" >> ./Biblia.txt"  
                 fi
 	
                 # PROCESOS SERVICIO -------------------------------------------- 
@@ -80,7 +80,7 @@ do
                     # sustituye el pid
 		
                     flock SanPedro -c "sed -i -e \"s/$pid/$pidNuevo/g\" \"$archivo\""		
-                    flock SanPedro -c "echo \"$hora El proceso $line resucita con el pid $pidNuevo\" >> ./Biblia.txt"             
+                    flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $line resucita con el pid $pidNuevo\" >> ./Biblia.txt"             
 	        fi	       
 
 	        # PROCESOS PERIODICOS -------------------------------------------
@@ -106,7 +106,7 @@ do
                             sed -i \"s~$pid~$pidNuevo~g\" \"$archivo\"                           
                         }"                     
 
-                        flock SanPedro -c "echo \"$hora El proceso $pid '$comandoProceso' se ha reencarnado en el pid $pidNuevo\" >> ./Biblia.txt"
+                        flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $pid '$comandoProceso' se ha reencarnado en el pid $pidNuevo\" >> ./Biblia.txt"
 	            
 		    else		
 		        # incrementar contador     	    
@@ -126,7 +126,7 @@ done
 
 
 # llega el Apocalipsis
-flock SanPedro -c "echo \"$hora ---------------Apocalipsis---------------\" >> ./Biblia.txt"
+flock SanPedro -c "echo \"$(date +%H:%M:%S) ---------------Apocalipsis---------------\" >> ./Biblia.txt"
 
 # terminar todos los procesos de todas las listas
 
@@ -141,12 +141,13 @@ do
     # tercera palabra de cada linea en funcion del archivo)
     cat "$archivo" | while read line
     do
+       #echo "==========LINE: $line" >> ./Biblia.txt
        pid=$(echo $line | awk -v N=$n '{print $N}')
        
        # si el proceso esta en ejecucion, lo termina
        if kill -0 "$pid" >/dev/null 
        then
-           flock SanPedro -c "echo \"$hora El proceso $line ha terminado\" >> ./Biblia.txt"
+           flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $line ha terminado\" >> ./Biblia.txt"
            kill "$pid"       
        fi
     done	
@@ -158,7 +159,7 @@ rm -f procesos procesos_servicio procesos_periodicos Apocalipsis SanPedro
 rm -fr Infierno
 
 # Termina su ejecucion
-echo \"$hora Se acabo el mundo.\" >> ./Biblia.txt
+echo "$(date +%H:%M:%S) Se acabo el mundo." >> ./Biblia.txt
 
 
 
