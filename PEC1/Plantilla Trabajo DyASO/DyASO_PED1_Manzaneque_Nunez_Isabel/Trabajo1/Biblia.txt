@@ -1,6 +1,12 @@
-20:17:14 ---------------Génesis---------------
-20:17:14 El demonio ha sido creado
-20:17:14 El proceso 9929 'sleep 30; echo hola' ha nacido.
-20:17:14 El proceso 9929 'sleep 30; echo hola' ha terminado
-20:17:14 ---------------Apocalipsis---------------
-20:17:14 Se acabo el mundo.
+18:32:02 ---------------Génesis---------------
+18:32:02 El demonio ha sido creado
+18:32:02 El proceso 10958 'sleep 10; echo hola >> test1.txt' ha nacido.
+18:32:02 El proceso 10984 'yes > /dev/null' ha nacido.
+18:32:02 El proceso 10993 'echo hola_periodico >> test2.txt' ha nacido.
+18:32:02 El proceso 11001 'echo hola_periodico_lento >> test3.txt; sleep 20' ha nacido.
+18:32:02 El proceso 10984 'yes > /dev/null' resucita con el pid 11030
+18:32:02 El proceso 11030 'yes > /dev/null' ha terminado
+18:32:02 El proceso 10993 'echo hola_periodico >> test2.txt' se ha reencarnado en el pid 11186
+18:32:02 ---------------Apocalipsis---------------
+18:32:02 El proceso 9 5 11001 'echo hola_periodico_lento >> test3.txt; sleep 20' ha terminado
+"18:32:02 Se acabo el mundo."

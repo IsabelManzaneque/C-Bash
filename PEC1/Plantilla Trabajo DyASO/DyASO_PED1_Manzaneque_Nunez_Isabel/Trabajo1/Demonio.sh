@@ -40,31 +40,31 @@ do
         cat "$archivo" | while read line
         do
             pid=$(echo $line | awk -v N=$n '{print $N}')
-		
+
             # el proceso esta en el infierno, todos realizan la misma accion
             if [ -e "./Infierno/$pid" ]           
             then    
+
                 # terminar arbol del proceso
                 arbolProcesos=$(pstree -p "$pid" | grep -o '[0-9]\+')
                 for proceso in $arbolProcesos
-                do
+                do	            
                     kill -15 "$proceso"
                 done
-                # eliminar entrada de la lista
-	        sed -i "/$line/d" "$archivo"
-                # eliminar fichero del infierno
-	        rm -f "./Infierno/$pid"
-                echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
-           
+                # eliminar entrada de la lista y fichero del infierno       
+	        flock SanPedro -c "sed -i \"\~$line~d\" \"$archivo\""
+	        flock SanPedro -c "rm -f \"./Infierno/$pid\""
+                flock SanPedro -c "echo \"$hora El proceso $line ha terminado\" >> ./Biblia.txt"
+                
             # el proceso no esta en el infierno, acciones distintas
 	    else
                
                 # PROCESOS -----------------------------------------------------
                 # si no se esta ejecutando lo elimina de la lista
                 if ! kill -0 "$pid" >/dev/null && [ "$archivo" == "procesos" ] 
-                then 
-                    sed -i "/$line/d" "$archivo"	
-                    echo "$hora El proceso $line ha terminado" >> ./Biblia.txt  
+                then         
+                    flock SanPedro -c "sed -i \"\~$line~d\" \"$archivo\""	
+                    flock SanPedro -c "echo \"$hora El proceso $line ha terminado\" >> ./Biblia.txt"  
                 fi
 	
                 # PROCESOS SERVICIO -------------------------------------------- 
@@ -75,11 +75,12 @@ do
                     # ejecuta el comando
 		    comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
 	            bash -c "$comandoProceso" &
+                    pidNuevo="$!"
+
                     # sustituye el pid
-		    pidNuevo="$!"
-                    sed -i -e "s/$pid/$pidNuevo/g" "$archivo"
 		
-                    echo "$hora El proceso $line resucita con el pid $pidNuevo" >> ./Biblia.txt             
+                    flock SanPedro -c "sed -i -e \"s/$pid/$pidNuevo/g\" \"$archivo\""		
+                    flock SanPedro -c "echo \"$hora El proceso $line resucita con el pid $pidNuevo\" >> ./Biblia.txt"             
 	        fi	       
 
 	        # PROCESOS PERIODICOS -------------------------------------------
@@ -94,23 +95,24 @@ do
 		        # volver a lanzar el proceso
 		        comandoProceso=$(echo "$line" | grep -o "'.*'" | sed "s/'//g")
 		        bash -c "$comandoProceso" &
-			
-		        #poner contador a 0                                         
+			echo "comandoproceso: $comandoProceso"
+		        #poner contador a 0 y sustituye el pid                                        
                         vectorLine[0]=0
                         newLine="${vectorLine[*]}"
-                        sed -i -e "s/$line/$newLine/g" "$archivo"  
+                        pidNuevo="$!"
+			
+			flock SanPedro -c "{
+                            sed -i \"s~$line~$newLine~g\" \"$archivo\"
+                            sed -i \"s~$pid~$pidNuevo~g\" \"$archivo\"                           
+                        }"                     
 
-                        # sustituye el pid
-		        pidNuevo="$!"
-                        sed -i -e "s/$pid/$pidNuevo/g" "$archivo"                      
-
-                        echo "$hora El proceso "$pid" '"$comandoProceso"’ se ha reencarnado en el pid $pidNuevo" >> ./Biblia.txt 
+                        flock SanPedro -c "echo \"$hora El proceso $pid '$comandoProceso' se ha reencarnado en el pid $pidNuevo\" >> ./Biblia.txt"
 	            
 		    else		
 		        # incrementar contador     	    
                         ((vectorLine[0]++))                      
                         newLine="${vectorLine[*]}"		        
-                        sed -i -e "s/$line/$newLine/g" "$archivo"              
+                        flock SanPedro -c "sed -i \"s~$line~$newLine~g\" \"$archivo\""              
 	            fi			    
 	        fi
             fi
@@ -124,7 +126,7 @@ done
 
 
 # llega el Apocalipsis
-echo "$hora ---------------Apocalipsis---------------" >> ./Biblia.txt
+flock SanPedro -c "echo \"$hora ---------------Apocalipsis---------------\" >> ./Biblia.txt"
 
 # terminar todos los procesos de todas las listas
 
@@ -144,7 +146,7 @@ do
        # si el proceso esta en ejecucion, lo termina
        if kill -0 "$pid" >/dev/null 
        then
-           echo "$hora El proceso $line ha terminado" >> ./Biblia.txt
+           flock SanPedro -c "echo \"$hora El proceso $line ha terminado\" >> ./Biblia.txt"
            kill "$pid"       
        fi
     done	
@@ -156,7 +158,7 @@ rm -f procesos procesos_servicio procesos_periodicos Apocalipsis SanPedro
 rm -fr Infierno
 
 # Termina su ejecucion
-echo "$hora Se acabo el mundo." >> ./Biblia.txt
+echo \"$hora Se acabo el mundo.\" >> ./Biblia.txt
 
 
 

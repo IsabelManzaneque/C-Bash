@@ -20,10 +20,12 @@ then
     touch procesos procesos_servicio procesos_periodicos Biblia.txt SanPedro
     mkdir Infierno 
     # Lanza el Demonio en segundo plano 
-    exec nohup "./Demonio.sh" >/dev/null &   
+    nohup ./Demonio.sh >/dev/null &   
     # Entrada genesis en la biblia 
-    echo "$hora ---------------Génesis---------------" >> ./Biblia.txt
-    echo "$hora El demonio ha sido creado" >> ./Biblia.txt
+    flock SanPedro -c "{
+                        echo \"$hora ---------------Génesis---------------\" 
+                        echo \"$hora El demonio ha sido creado\" 
+                       } >> ./Biblia.txt"
    
 fi
 
@@ -53,8 +55,8 @@ case "$1" in
 	    bash -c "$comando" &	
 	    pidBash="$!"
 	    
-	    echo "$pidBash '$comando'" >> ./procesos_servicio
-            echo "$hora El proceso $pidBash '$comando' ha nacido." >> ./Biblia.txt
+	    flock SanPedro -c "echo \"$pidBash '$comando'\" >> ./procesos_servicio"
+            flock SanPedro -c "echo \"$hora El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi
@@ -67,10 +69,9 @@ case "$1" in
 	    comando="$3"
 	    bash -c "$comando" &	
 	    pidBash="$!"
-	    tArranque=$(ps -p $pidBash -o etimes=)	
 	  
-	    echo "$tArranque $T $pidBash '$comando'" >> ./procesos_periodicos
-            echo "$hora El proceso $pidBash '$comando' ha nacido." >> ./Biblia.txt
+	    flock SanPedro -c "echo \"0 $T $pidBash '$comando'\" >> ./procesos_periodicos"
+            flock SanPedro -c "echo \"$hora El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi
@@ -79,21 +80,26 @@ case "$1" in
         # Muestra una lista de los procesos creados
         if [ "$#" -eq 1 ]
         then
-	    cat procesos procesos_servicio procesos_periodicos
+	    echo "***** Procesos normales *****"
+	    cat procesos 
+	    echo "***** Procesos servicio *****"
+	    cat procesos_servicio 
+	    echo "***** Procesos periodicos *****"
+	    cat procesos_periodicos
  	else
 	    echo "Error! $1 admite un solo parametro"
 	fi
         ;;
     "help")
 	# Muestra los comandos disponibles
-        echo "Comandos disponibles:"
-        echo "* run comando"
-	echo "* run-service comando"
-	echo "* run-periodic comando"
-	echo "* list"
-	echo "* help"
-	echo "* stop"
-	echo "* end"
+        echo "Sintaxis:"
+	echo "./Fausto.sh run comando"
+	echo "./Fausto.sh run-service comando"
+	echo "./Fausto.sh run-periodic T comando"
+	echo "./Fausto.sh list"
+	echo "./Fausto.sh help"
+	echo "./Fausto.sh stop PID"
+	echo "./Fausto.sh end"        
         ;;
     "stop")
 	# Si existe el proceso, crea un archivo con su pid en Infierno
@@ -102,7 +108,7 @@ case "$1" in
 	    pid="$2"	    
 	    if grep -q "$pid" "procesos" || grep -q "$pid" "procesos_servicio" || grep -q "$pid" "procesos_periodicos"
             then
-                touch ./Infierno/"$pid"	        
+                flock SanPedro -c "touch ./Infierno/\"$pid\""       
 	    else
 	        echo "Error! No existe el proceso $pid. Consulte la lista de procesos con './Fausto.sh list'" 
 	    fi	    
@@ -112,8 +118,7 @@ case "$1" in
         ;;
     "end")
         # Crea el fichero Apocalipsis
-        touch Apocalipsis
-	echo "Se ha creado el fichero Apocalipsis"
+        touch Apocalipsis	
         ;;
 
     *)	
