@@ -86,8 +86,9 @@ do
 	        # PROCESOS PERIODICOS -------------------------------------------
                 if [ "$archivo" == "procesos_periodicos" ] 
                 then   
+		    # incrementar contador 
                     vectorLine=($line)                                      
-                                        
+                    ((vectorLine[0]++))                    
                     # si el proceso no se esta ejecutando y el contador es mayor o igual al periodo         
 	            if ! kill -0 "$pid" >/dev/null && [ "${vectorLine[0]}" -ge "${vectorLine[1]}" ]
 	            then
@@ -110,7 +111,7 @@ do
 	            
 		    else		
 		        # incrementar contador     	    
-                        ((vectorLine[0]++))                      
+                        #((vectorLine[0]++))                      
                         newLine="${vectorLine[*]}"		        
                         flock SanPedro -c "sed -i \"s~$line~$newLine~g\" \"$archivo\""              
 	            fi			    
