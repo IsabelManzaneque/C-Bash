@@ -1,23 +1,17 @@
 #!/bin/bash
 
-#Recibe órdenes creando los procesos y listas adecuadas
-#Si el Demonio no está vivo lo crea
-#Al leer/escribir en las listas hay que usar bloqueo para no coincidir con el Demonio
 
-# Comprueba si proceso Demonio existe y si no, realiza las acciones
-#-x solo match procesos cuyo nombre es el mismo
+# Comprueba si proceso Demonio existe 
 if ! pgrep -x "Demonio.sh" > /dev/null 
 then
     echo "----------Comenzando-----------"
-    # Borra ficheros y carpetas. Usando -f (--force) no nos da Error si los files no existen
-    # Conveniente si en lugar de comprobar si estan, solo queremos asegurarnos de que NO estan 
+    # Borra ficheros y carpetas residuales y los vuelve a crear vacios
     rm -f procesos procesos_servicio procesos_periodicos Biblia.txt Apocalipsis SanPedro
     rm -fr Infierno
-    # Los vuelve a crear vacios
     touch procesos procesos_servicio procesos_periodicos Biblia.txt SanPedro
     mkdir Infierno 
     # Lanza el Demonio en segundo plano 
-    nohup ./Demonio.sh >/dev/null &   
+    nohup ./Demonio.sh >/dev/null 2>&1 &   
     # Entrada genesis en la biblia 
     flock SanPedro -c "{
                         echo \"$(date +%H:%M:%S) ---------------Génesis---------------\" 
@@ -29,8 +23,7 @@ fi
 
 
 case "$1" in
-    "run")
-        
+    "run")        
 	if [ "$#" -eq 2 ]
         then
 	    # Crea una nueva entrada en la lista de procesos y en la biblia
@@ -41,7 +34,7 @@ case "$1" in
 	    flock SanPedro -c "echo \"$pidBash '$comando'\" >> ./procesos"
             flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
-	    echo "Error! $1 admite un solo parametro"
+	    echo "Error! $1 admite un parametro"
 	fi
         ;;
     "run-service")
@@ -55,7 +48,7 @@ case "$1" in
 	    flock SanPedro -c "echo \"$pidBash '$comando'\" >> ./procesos_servicio"
             flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
-	    echo "Error! $1 admite un solo parametro"
+	    echo "Error! $1 admite un parametro"
 	fi
 	;;
     "run-periodic")
@@ -70,7 +63,7 @@ case "$1" in
 	    flock SanPedro -c "echo \"0 $T $pidBash '$comando'\" >> ./procesos_periodicos"
             flock SanPedro -c "echo \"$(date +%H:%M:%S) El proceso $pidBash '$comando' ha nacido.\" >> ./Biblia.txt"
  	else
-	    echo "Error! $1 admite un solo parametro"
+	    echo "Error! $1 admite un parametro"
 	fi
 	;;
     "list")
@@ -105,19 +98,18 @@ case "$1" in
 	    pid="$2"	    
 	    if grep -q "$pid" "procesos" || grep -q "$pid" "procesos_servicio" || grep -q "$pid" "procesos_periodicos"
             then
-                flock SanPedro -c "touch ./Infierno/\"$pid\""       
+                touch ./Infierno/"$pid"       
 	    else
 	        echo "Error! No existe el proceso $pid. Consulte la lista de procesos con './Fausto.sh list'" 
 	    fi	    
  	else
-	    echo "Error! $1 admite un solo parametro"
+	    echo "Error! $1 debe recibir un parametro"
 	fi
         ;;
     "end")
         # Crea el fichero Apocalipsis
         touch Apocalipsis	
         ;;
-
     *)	
         echo "Error! No existe la orden '$1'. Consulte las órdenes disponibles con ./Fausto.sh help"
         exit 1
