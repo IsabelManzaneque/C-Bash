@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 archivos=("procesos" "procesos_servicio" "procesos_periodicos")
 
 # BUCLE PRINCIPAL
