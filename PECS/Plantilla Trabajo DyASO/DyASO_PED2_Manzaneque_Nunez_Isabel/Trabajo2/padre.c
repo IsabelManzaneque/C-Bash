@@ -9,6 +9,8 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <unistd.h>
+#include <sys/wait.h>
+
 
 int main(int argNum, char *args[]){
     
@@ -40,23 +42,19 @@ int main(int argNum, char *args[]){
 
         pid_t pidFork = fork();
         
-        if(pidFork == 0){	    
-	    
-            // Esto lo ejecuta solo el proceso hijo
-            if(execlp("./Trabajo2/HIJO", "HIJO", NULL)==-1){
-                printf("oh no\n");
-                exit(EXIT_FAILURE);
-            }else{
-                printf("oh yes");
-            }
-        }
-         
+        if(pidFork == 0){	   	    
+            
+            execl("./Trabajo2/HIJO", "HIJO", NULL); 
+	    printf("\n Aqui ya no llego\n");          
+	
+        }        
     }
     
 
     // Desvincular memoria compartida
     //shmdt();
 
+    wait(0);
     printf("Finalizando padre \n");       
     return 0;
 
