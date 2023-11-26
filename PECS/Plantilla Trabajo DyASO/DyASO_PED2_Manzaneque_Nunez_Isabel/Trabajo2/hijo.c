@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
 
 int main(int argc, char const *argv[]) {
    
@@ -30,7 +32,7 @@ int main(int argc, char const *argv[]) {
     }
 
     // recuperar memoria compartida
-    int shrdMemId = shmget(key, 0);      
+    int shrdMemId = shmget(key, 0, 0);      
     if (mensajes == -1) {
         perror("memoriaCompartida");
         exit(-1);
