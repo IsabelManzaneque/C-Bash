@@ -54,18 +54,16 @@ void nHijos(int N, char argv0[], pid_t *lista, int barrera[2]){
 	if(resFork == -1){
             perror("fork");
             exit(-1);
-        }
-	
-        if(resFork == 0){	   	    
+        }else if(resFork == 0){	   	    
             // Proceso Hijo
-
             // Cierra la salida estándar y duplica extremo de lectura de barrera
-            close(1); 
-            dup(barrera[0]);
-            close(barrera[0]);
-            close(barrera[1]);
-            execl("./Trabajo2/HIJO", "HIJO", argv0, NULL); 
-
+            //close(1); 
+            //dup(barrera[0]);
+            //close(barrera[0]);
+            //close(barrera[1]);
+            char pipeString[10];
+            sprintf(pipeString, "%d", barrera[0]);            
+            execl("./Trabajo2/HIJO", "HIJO", argv0, pipeString, NULL); 
         }else{
             // Proceso Padre     
             lista[pidCounter] = resFork;
@@ -142,10 +140,11 @@ int main(int argc, char *argv[]){
     // crea N procesos 
     nHijos(N, argv[0], lista, barrera);
     
+    
     // ------------- RONDAS --------------
     
-    // mientras queden 2 o mas contendientes, se hara otra ronda
-    while (childCounter > 1){
+    // mientras queden 2 o mas contendientes, se hara otra ronda 
+    //while (childCounter > 1){
 
         // actualiza la lista de procesos
         actualizarLista(&childCounter, lista, sem);
@@ -155,7 +154,7 @@ int main(int argc, char *argv[]){
         char msg[childCounter];
         write(barrera[1], msg, sizeof(msg));
    
-    }
+    //}
     
  
     // ------------- LIBERAR RECURSOS IPC --------------

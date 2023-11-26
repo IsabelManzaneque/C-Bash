@@ -14,9 +14,13 @@ int main(int argc, char const *argv[]) {
    
     printf("\n------------ Inicio hijo ------------\n");
     
+    // ------------- INICIALIZACION --------------
     // Recuperar la clave
     key_t key = ftok(argv[1],'X');
-
+    
+    // Recuperar descriptor de lectura
+    int descLectura = atoi(argv[2]);
+   
     // recuperar cola de mensajes
     int mensajes = msgget(key,0);
     if (mensajes == -1) {
@@ -37,6 +41,12 @@ int main(int argc, char const *argv[]) {
         perror("memoriaCompartida");
         exit(-1);
     }
+
+    // ------------- RONDAS --------------
+    
+    //char buffer[100];
+    //int msg = read(descLectura, buffer, sizeof(buffer));
+    //printf("MSG: %d\n", msg); 
 
     char texto[20];
     strcpy(texto, argv[0]);
