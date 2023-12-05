@@ -56,11 +56,7 @@ void nHijos(int N, char argv0[], pid_t *lista, int barrera[2]){
             exit(-1);
         }else if(resFork == 0){	   	    
             // Proceso Hijo
-            // Cierra la salida estándar y duplica extremo de lectura de barrera
-            //close(1); 
-            //dup(barrera[0]);
-            //close(barrera[0]);
-            //close(barrera[1]);
+            close(barrera[1]);
             char pipeString[10];
             sprintf(pipeString, "%d", barrera[0]);            
             execl("./Trabajo2/HIJO", "HIJO", argv0, pipeString, NULL); 
@@ -72,28 +68,7 @@ void nHijos(int N, char argv0[], pid_t *lista, int barrera[2]){
         }	   
     }
 }
-
-void actualizarLista(int *childCounter, pid_t *lista, int sem){    
-    
-    size_t i = 0;
-    while (i < *childCounter) {
-        if (kill(lista[i], 0) != 0) {
-            // El proceso está muerto, eliminarlo de la lista
-            printf("proceso %d esta muerto\n", lista[i]);
-            wait_sem(sem);
-            for (size_t j = i; j < *childCounter - 1; j++) {
-                lista[j] = lista[j + 1];
-            }
-            signal_sem(sem);
-            (*childCounter)--;
-        } else {
-            // El proceso está vivo, pasar al siguiente
-            printf("proceso %d esta vivo\n", lista[i]);
-            i++;
-        }
-    }    
-}
-
+/*
 void matarProceso(int index, pid_t *lista) {
     if (kill(lista[index], SIGTERM) == 0) {
         printf("Señal SIGTERM enviada a %d\n", lista[index]);
@@ -107,12 +82,36 @@ void matarProceso(int index, pid_t *lista) {
         perror("Error al enviar señal SIGTERM");           
     }
 }
+*/
+void actualizarLista(int *K, pid_t *lista, int sem){    
+    
+    size_t i = 0;
+    while (i < *K) {
+        if (kill(lista[i], 0) != 0) {
+            // El proceso está muerto, eliminarlo de la lista
+            printf("proceso %d esta muerto\n", lista[i]);
+            wait_sem(sem);
+            //for (size_t j = i; j < *K - 1; j++) {
+            //    lista[j] = lista[j + 1];
+            //}
+            lista[i] = 0;
+            signal_sem(sem);
+            (*K)--;
+        } else {
+            // El proceso está vivo, pasar al siguiente
+            printf("proceso %d esta vivo\n", lista[i]);
+            i++;
+        }
+    }    
+}
+
+
 
 int main(int argc, char *argv[]){
     
     // ------------- INICIALIZACION --------------
-    int N, childCounter;
-    N = childCounter = atoi(argv[1]);
+    int N, K;
+    N = K = atoi(argv[1]);
 
     // crea clave asociada a fichero ejecutable y letra 
     key_t key = ftok(argv[0],'X');
@@ -144,19 +143,25 @@ int main(int argc, char *argv[]){
     // ------------- RONDAS --------------
     
     // mientras queden 2 o mas contendientes, se hara otra ronda 
-    //while (childCounter > 1){
+        
+    while (K > 1){
 
         // actualiza la lista de procesos
-        actualizarLista(&childCounter, lista, sem);
+        actualizarLista(&K, lista, sem);
         
         printf("Iniciando ronda de ataques\n");
-        // manda mensaje de tantos bytes como hijos queden vivos
-        char msg[childCounter];
-        write(barrera[1], msg, sizeof(msg));
-   
-    //}
+        // manda un mensaje de 1 byte K veces 
+        char msg[1];
+        msg[0] = 'P';
+        for (int i = 0; i < K; i++) {
+            write(barrera[1], msg, sizeof(msg)+1);
+        }        
+ 	sleep(1);
+    }
     
- 
+    close(barrera[0]);
+    close(barrera[1]);
+
     // ------------- LIBERAR RECURSOS IPC --------------
    
     // Desvincular memoria compartida
