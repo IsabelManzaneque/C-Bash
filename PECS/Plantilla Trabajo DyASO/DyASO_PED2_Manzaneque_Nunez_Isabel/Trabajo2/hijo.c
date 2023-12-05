@@ -13,8 +13,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 
-char estado[100];
-// semilla para numeros aleatorios
+char estado[3];
 
 
 void indefenso(){
@@ -29,35 +28,33 @@ void defensa(){
 
 void ataque(pid_t *lista){
     
-     // elegirán aleatoriamente un PID diferente de 0 de la lista (menos el suyo)
+     // elegir aleatoriamente un PID que no sea 0 ni el propio
      srand((unsigned int)time(NULL));
      pid_t pidVictima = 0;
-     int ranIndx = rand() % 10;
-     
+          
      while(pidVictima == 0 || pidVictima == getpid()){
+         int ranIndx = rand() % 10;
          pidVictima = lista[ranIndx];
-     }
-     
-     printf("\nAtacando al proceso %d\n", pidVictima);
-
+     }   
+     // envia SIGUSR1 a victima
      if (kill(pidVictima, SIGUSR1) == 0) {
-	// Esperar a que el proceso hijo termine
-        int estado;
-        pid_t pidTerminado = waitpid(pidVictima, &estado, 0);
-	if (pidTerminado == -1) {
-            perror("Hijo: waitpid");
-        }
-    }else{
+	printf("\n%d Atacando al proceso %d\n", getpid(), pidVictima);          
+     }else{
         perror("Hijo: ataque");           
-    }
+     }
  
 }
 
 
+struct mensaje{
+    long tipo;
+    pid_t pid;
+    char state[3]; 
+};
 
 int main(int argc, char const *argv[]) {
    
-    printf("\n------------ Inicio hijo ------------\n");
+    printf("Inicio hijo %d\n", getpid());
     
     // ------------- INICIALIZACION --------------
     // Recuperar la clave
@@ -118,8 +115,22 @@ int main(int argc, char const *argv[]) {
 	        exit(1);
             } 
             usleep(200000);      
-        }        
+        }   
+	
+	// Configurar el tipo de mensaje, el PID y la cadena
+        struct mensaje msg;
+        msg.tipo = 1;  
+        msg.pid = getpid();
+        strcpy(msg.state, estado);
         
+        // Enviar el mensaje a la cola
+        if (msgsnd(mensajes, &msg, sizeof(struct mensaje) - sizeof(long), 0) == -1) {
+            perror("Hijo: msgsnd");
+            exit(-1);
+        }
+
+	
+
         sleep(1);
     }
    
@@ -135,7 +146,7 @@ int main(int argc, char const *argv[]) {
  //       sleep(1);
  //   }
     
-    printf("-------------- Fin hijo -------------\n\n");
+    printf("Fin hijo %d\n", getpid());
     exit(0);
 
 

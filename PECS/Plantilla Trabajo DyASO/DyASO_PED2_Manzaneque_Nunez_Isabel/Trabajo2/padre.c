@@ -11,7 +11,11 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-
+struct mensaje{
+    long tipo;
+    pid_t pid;
+    char state[3]; 
+};
 
 void init_sem(int sem, int value){
     if (semctl(sem, 0, SETVAL, value) == -1) {
@@ -112,6 +116,7 @@ int main(int argc, char *argv[]){
     // ------------- INICIALIZACION --------------
     int N, K;
     N = K = atoi(argv[1]);
+    struct mensaje msgHijo;
 
     // crea clave asociada a fichero ejecutable y letra 
     key_t key = ftok(argv[0],'X');
@@ -145,22 +150,37 @@ int main(int argc, char *argv[]){
     // mientras queden 2 o mas contendientes, se hara otra ronda 
         
     while (K > 1){
-
+	
+	printf("\n ------ Hijos vivos: %d ------\n", K);
         // actualiza la lista de procesos
         actualizarLista(&K, lista, sem);
         
-        printf("Iniciando ronda de ataques\n");
+        printf("\n ------ Iniciando ronda de ataques ------\n");
         // manda un mensaje de 1 byte K veces 
         char msg[1];
         msg[0] = 'P';
         for (int i = 0; i < K; i++) {
             write(barrera[1], msg, sizeof(msg)+1);
-        }        
+        }   
+
+	// Padre recibe los mensajes de los hijos       
+        if (msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 1, 0) == -1) {
+            perror("Padre: msgrcv");
+            exit(-1);
+        }
+
+        // Imprimir el mensaje recibido
+        printf("Padre (%d) recibió un mensaje del Hijo:\n", getpid());
+        printf("Tipo: %ld\n", msgHijo.tipo);
+        printf("PID del Hijo: %d\n", msgHijo.pid);
+        printf("Estado: %s\n", msgHijo.state);     
  	sleep(1);
     }
     
     close(barrera[0]);
     close(barrera[1]);
+   
+    
 
     // ------------- LIBERAR RECURSOS IPC --------------
    
