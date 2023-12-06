@@ -10,6 +10,7 @@
 #include <sys/sem.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 struct mensaje{
     long tipo;
@@ -17,14 +18,14 @@ struct mensaje{
     char state[3]; 
 };
 
-void init_sem(int sem, int value){
+void initSem(int sem, int value){
     if (semctl(sem, 0, SETVAL, value) == -1) {
         perror("padre: semctl");
         exit(1);
     }
 }
 
-void wait_sem(int sem){
+void waitSem(int sem){
     struct sembuf op;
     op.sem_num = 0;
     op.sem_op = -1;  
@@ -36,7 +37,7 @@ void wait_sem(int sem){
     
 }
 
-void signal_sem(int sem){
+void signalSem(int sem){
     struct sembuf op;
     op.sem_num = 0;
     op.sem_op = 1;  
@@ -47,7 +48,7 @@ void signal_sem(int sem){
     }
 }
 
-void nHijos(int N, char argv0[], pid_t *lista, int barrera[2]){
+void nHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){
     
     // crea N procesos hijos que ejecutaran HIJO
     int pidCounter = 0; 
@@ -61,32 +62,41 @@ void nHijos(int N, char argv0[], pid_t *lista, int barrera[2]){
         }else if(resFork == 0){	   	    
             // Proceso Hijo
             close(barrera[1]);
-            char pipeString[10];
-            sprintf(pipeString, "%d", barrera[0]);            
-            execl("./Trabajo2/HIJO", "HIJO", argv0, pipeString, NULL); 
+            char lectura[10];
+            char escritura[10];
+            sprintf(lectura, "%d", barrera[0]);      
+            sprintf(escritura, "%d", barrera[1]);      
+            execl("./Trabajo2/HIJO", "HIJO", argv0, lectura, escritura, NULL); 
         }else{
-            // Proceso Padre     
+            // Proceso Padre   
+            waitSem(sem);
             lista[pidCounter] = resFork;
             pidCounter++;
+	    signalSem(sem);
             
         }	   
     }
 }
-/*
-void matarProceso(int index, pid_t *lista) {
-    if (kill(lista[index], SIGTERM) == 0) {
-        printf("Señal SIGTERM enviada a %d\n", lista[index]);
+
+void matarProceso(int *K, pid_t pid, pid_t *lista) {
+    if (kill(pid, SIGTERM) == 0) {
+        printf("Señal SIGTERM enviada a %d\n", pid);
 	// Esperar a que el proceso hijo termine
         int estado;
-        pid_t pidTerminado = waitpid(lista[index], &estado, 0);
-	if (pidTerminado == -1) {
-            perror("padre: waitpid");
-        }
+        wait(&estado);	         
     }else{
-        perror("Error al enviar señal SIGTERM");           
+        perror("padre: sigterm");
     }
+  
+    // actualizar lista
+    for(int i = 0; i < 10; i++){
+	if(lista[i] == pid){ 
+            lista[i] = 0;
+            (*K)--;          
+        }
+    }   
 }
-*/
+/*
 void actualizarLista(int *K, pid_t *lista, int sem){    
     
     size_t i = 0;
@@ -94,22 +104,21 @@ void actualizarLista(int *K, pid_t *lista, int sem){
         if (kill(lista[i], 0) != 0) {
             // El proceso está muerto, eliminarlo de la lista
             printf("proceso %d esta muerto\n", lista[i]);
-            wait_sem(sem);
-            //for (size_t j = i; j < *K - 1; j++) {
-            //    lista[j] = lista[j + 1];
-            //}
+            fflush(stdout); 
+            waitSem(sem);
             lista[i] = 0;
-            signal_sem(sem);
+            signalSem(sem);
             (*K)--;
         } else {
             // El proceso está vivo, pasar al siguiente
             printf("proceso %d esta vivo\n", lista[i]);
+            fflush(stdout); 
             i++;
         }
     }    
 }
 
-
+*/
 
 int main(int argc, char *argv[]){
     
@@ -123,7 +132,10 @@ int main(int argc, char *argv[]){
 
     // crear cola de mensajes "mensajes"
     int mensajes = msgget(key, IPC_CREAT | 0600);
- 
+        if (mensajes == -1) {
+        perror("Hijo: msgget");
+        exit(-1);
+    }
     // crear región de memoria compartida "lista" de tamano N pids
     // y enlazararla con un array con capacidad para N PIDs 
     int shrdMemId = shmget(key, N*sizeof(pid_t), IPC_CREAT | 0600);      
@@ -132,7 +144,7 @@ int main(int argc, char *argv[]){
     // crea semáforo para proteger acceso a "lista" 
     // lo iniciializa a 1 para exclusion mutua
     int sem = semget(key, 1, IPC_CREAT | 0600);  
-    init_sem(sem, 1);
+    initSem(sem, 1);
 
     // crear tuberia sin nombre "barrera"
     int barrera[2];
@@ -142,53 +154,82 @@ int main(int argc, char *argv[]){
     }
     
     // crea N procesos 
-    nHijos(N, argv[0], lista, barrera);
+    nHijos(N, argv[0], lista, barrera, sem);
     
     
     // ------------- RONDAS --------------
     
     // mientras queden 2 o mas contendientes, se hara otra ronda 
         
-    while (K > 1){
+    //while (K > 1){
 	
 	printf("\n ------ Hijos vivos: %d ------\n", K);
-        // actualiza la lista de procesos
-        actualizarLista(&K, lista, sem);
+        fflush(stdout); 
+        for(int i = 0; i < 10; i++){
+            waitSem(sem);
+	    printf("Hijo %d: %d\n", i, lista[i]);
+            fflush(stdout);
+            signalSem(sem);
+        }
+       
         
         printf("\n ------ Iniciando ronda de ataques ------\n");
+        fflush(stdout); 
+
         // manda un mensaje de 1 byte K veces 
-        char msg[1];
-        msg[0] = 'P';
-        for (int i = 0; i < K; i++) {
-            write(barrera[1], msg, sizeof(msg)+1);
-        }   
 
-	// Padre recibe los mensajes de los hijos       
-        if (msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 1, 0) == -1) {
-            perror("Padre: msgrcv");
-            exit(-1);
-        }
+	for (int i = 0; i < K; i++) {
+	    char msg[1];
+	    msg[0] = 'P';  
+	    write(barrera[1], msg, sizeof(msg));
+	    usleep(10000);
+	}
+	// cieraa extremo escritura del padre
+        close(barrera[1]);  
 
-        // Imprimir el mensaje recibido
-        printf("Padre (%d) recibió un mensaje del Hijo:\n", getpid());
-        printf("Tipo: %ld\n", msgHijo.tipo);
-        printf("PID del Hijo: %d\n", msgHijo.pid);
-        printf("Estado: %s\n", msgHijo.state);     
- 	sleep(1);
-    }
+	// Esperar a que todos los hijos terminen
+	for (int i = 0; i < K; i++) {
+	    wait(NULL);
+	}
+
+	// Padre recibe los mensajes de los hijos           
+	/*
+        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 1, 0) != -1) {
+        	
+            // Imprimir el mensaje recibido
+            printf("Padre %d recibió un mensaje del Hijo %d:\n", getpid(), msgHijo.pid);
+            fflush(stdout); 
+            printf("Tipo: %ld - Estado: %s\n\n", msgHijo.tipo, msgHijo.state);            
+            fflush(stdout); 
+  	
+            if(strcmp("KO", msgHijo.state) == 0){    
+                printf("Matando %d\n", msgHijo.pid);
+                fflush(stdout);  
+                waitSem(sem);              
+                matarProceso(&K, msgHijo.pid,lista);
+	        signalSem(sem);
+            }            
+
+            sleep(1);
+        }*/
+        
+    //}
     
-    close(barrera[0]);
-    close(barrera[1]);
    
+    close(barrera[0]);
+    
     
 
     // ------------- LIBERAR RECURSOS IPC --------------
    
     // Desvincular memoria compartida
     //shmdt();
+    // borrar cola de mensajes
+    // msgctl(mensajes, IPC_RMID,0);
 
     wait(0);
-    printf("Finalizando padre\n");       
+    printf("Finalizando padre\n");    
+    fflush(stdout);    
     return 0;
 
 }
