@@ -48,7 +48,7 @@ void signalSem(int sem){
     }
 }
 
-void nHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){
+void crearNHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){
     
     // crea N procesos hijos que ejecutaran HIJO
     int pidCounter = 0; 
@@ -57,11 +57,10 @@ void nHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){
         pid_t resFork = fork();
         
 	if(resFork == -1){
-            perror("fork");
+            perror("padre: fork");
             exit(-1);
         }else if(resFork == 0){	   	    
-            // Proceso Hijo
-            close(barrera[1]);
+            // Proceso Hijo          
             char lectura[10];
             char escritura[10];
             sprintf(lectura, "%d", barrera[0]);      
@@ -96,29 +95,7 @@ void matarProceso(int *K, pid_t pid, pid_t *lista) {
         }
     }   
 }
-/*
-void actualizarLista(int *K, pid_t *lista, int sem){    
-    
-    size_t i = 0;
-    while (i < *K) {
-        if (kill(lista[i], 0) != 0) {
-            // El proceso está muerto, eliminarlo de la lista
-            printf("proceso %d esta muerto\n", lista[i]);
-            fflush(stdout); 
-            waitSem(sem);
-            lista[i] = 0;
-            signalSem(sem);
-            (*K)--;
-        } else {
-            // El proceso está vivo, pasar al siguiente
-            printf("proceso %d esta vivo\n", lista[i]);
-            fflush(stdout); 
-            i++;
-        }
-    }    
-}
 
-*/
 
 int main(int argc, char *argv[]){
     
@@ -154,13 +131,12 @@ int main(int argc, char *argv[]){
     }
     
     // crea N procesos 
-    nHijos(N, argv[0], lista, barrera, sem);
-    
+    crearNHijos(N, argv[0], lista, barrera, sem);
+    close(barrera[0]);
     
     // ------------- RONDAS --------------
     
-    // mientras queden 2 o mas contendientes, se hara otra ronda 
-        
+    // mientras queden 2 o mas contendientes, se hara otra ronda     
     //while (K > 1){
 	
 	printf("\n ------ Hijos vivos: %d ------\n", K);
@@ -185,25 +161,17 @@ int main(int argc, char *argv[]){
 	    usleep(10000);
 	}
 	// cieraa extremo escritura del padre
-        close(barrera[1]);  
-
-	// Esperar a que todos los hijos terminen
-	for (int i = 0; i < K; i++) {
-	    wait(NULL);
-	}
+        close(barrera[1]);   	
 
 	// Padre recibe los mensajes de los hijos           
-	/*
-        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 1, 0) != -1) {
+	
+        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 1, IPC_NOWAIT) != -1) {
         	
             // Imprimir el mensaje recibido
-            printf("Padre %d recibió un mensaje del Hijo %d:\n", getpid(), msgHijo.pid);
-            fflush(stdout); 
-            printf("Tipo: %ld - Estado: %s\n\n", msgHijo.tipo, msgHijo.state);            
-            fflush(stdout); 
+            printf("Padre %d recibe de %d: Tipo: %ld - Estado: %s\n", getpid(), msgHijo.pid, msgHijo.tipo, msgHijo.state);
+           
   	
-            if(strcmp("KO", msgHijo.state) == 0){    
-                printf("Matando %d\n", msgHijo.pid);
+            if(strcmp("KO", msgHijo.state) == 0){               
                 fflush(stdout);  
                 waitSem(sem);              
                 matarProceso(&K, msgHijo.pid,lista);
@@ -211,12 +179,11 @@ int main(int argc, char *argv[]){
             }            
 
             sleep(1);
-        }*/
-        
+        }
     //}
     
    
-    close(barrera[0]);
+    
     
     
 

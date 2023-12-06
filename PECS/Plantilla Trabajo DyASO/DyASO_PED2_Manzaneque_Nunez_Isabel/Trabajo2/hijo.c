@@ -58,8 +58,11 @@ void defensa(){
 }
 
 void ataque(pid_t *lista, int sem){
-    
-     // elegir aleatoriamente un PID que no sea 0 ni el propio
+     /*
+     El proceso elige aleatoriamente un pid distinto de 0 y del propio
+     y lo mata enviandole la senal SIGUSR1
+     */
+     
      srand((unsigned int)time(NULL));
      pid_t pidVictima = 0;
           
@@ -76,7 +79,33 @@ void ataque(pid_t *lista, int sem){
      }else{
         perror("Hijo: ataque");           
      }
- 
+     usleep(100000);
+}
+
+int preparacion(){
+    /*
+     Cuando el proceso recibe la SIGUSR1, realizara la accion del manejador
+    */
+    srand((unsigned int)time(NULL));      
+    strcpy(estado, "OK");
+
+    if(rand() % 2 == 0){
+        // proceso ataca        
+        if(signal(SIGUSR1,indefenso)==SIG_ERR){
+            perror("Hijo: indefenso");
+            exit(1);
+        } 
+        usleep(100000);          
+        return 0;
+    }else{
+        // proceso defiende       
+        if(signal(SIGUSR1,defensa)==SIG_ERR){
+            perror("Hijo: defensa");
+            exit(1);
+        } 
+        usleep(200000);      
+    } 
+    return 1; 
 }
 
 
@@ -86,10 +115,28 @@ struct mensaje{
     char state[3]; 
 };
 
+void enviarMensajeAPadre(int mensajes){
+
+    // Configurar el tipo de mensaje, el PID y la cadena
+    struct mensaje msg;
+    msg.tipo = 1;  
+    msg.pid = getpid();
+    strcpy(msg.state, estado);
+
+    printf("Hijo %d enviando: Tipo: %ld - Estado: %s\n", msg.pid, msg.tipo, msg.state);
+           
+    // Enviar el mensaje a la cola
+    if (msgsnd(mensajes, &msg, sizeof(struct mensaje) - sizeof(long), 0) == -1) {
+        perror("Hijo: msgsnd");
+        exit(-1);
+    }
+}
+
+
 int main(int argc, char const *argv[]) {
     
     pid_t pid = getpid();
-    //printf("Inicio hijo %d\n", pid);
+    printf("Inicio hijo %d\n", pid);
     
     // ------------- INICIALIZACION --------------
     // Recuperar la clave
@@ -127,54 +174,20 @@ int main(int argc, char const *argv[]) {
     
     char buffer[10];
     close(descEscritura);
+    while(1){
 
-    while(read(descLectura, buffer, sizeof(buffer)) > 0){       
-	printf("hijo %d, mensaje recibido: %s\n", pid, buffer);
-        // Hay un mensaje en la tuberia
-        srand((unsigned int)time(NULL));
-        int ranNum = rand() % 2;        
-
-        if(ranNum == 0){
-            // proceso ataca
-	    // cuando el proceso reciba SIGUSR1 la acción que realiza el núcleo es ejecutar indefenso
-            if(signal(SIGUSR1,indefenso)==SIG_ERR){
-                perror("Hijo: indefenso");
-	        exit(1);
-            } 
-            usleep(100000);   
-            ataque(lista, sem); 
-            usleep(100000);  
-       
-        }else{
-            // proceso defiende
-            // cuando el proceso reciba SIGUSR1 la acción que realiza el núcleo es ejecutar defensa
-            if(signal(SIGUSR1,defensa)==SIG_ERR){
-                perror("Hijo: defensa");
-	        exit(1);
-            } 
-            usleep(200000);      
-        }   
-	
-	// Configurar el tipo de mensaje, el PID y la cadena
-        struct mensaje msg;
-        msg.tipo = 1;  
-        msg.pid = pid;
-        strcpy(msg.state, estado);
-        
-	    printf("Hijo %d enviando\n", pid);
-            fflush(stdout); 
-            printf("Tipo: %ld - Estado: %s\n\n", msg.tipo, msg.state);            
-            fflush(stdout); 
-        // Enviar el mensaje a la cola
-        if (msgsnd(mensajes, &msg, sizeof(struct mensaje) - sizeof(long), 0) == -1) {
-            perror("Hijo: msgsnd");
-            exit(-1);
-        }
-
+        if(read(descLectura, buffer, sizeof(buffer)) > 0){       
+	    printf("hijo %d, mensaje recibido: %s\n", pid, buffer);            
+             
+	    if(preparacion() == 0){	         
+                ataque(lista, sem);                 
+            }
 	 
-        sleep(1);
-	
-    }   
+  	    enviarMensajeAPadre(mensajes);	    
+        } 
+        sleep(1);	
+    } 
+
     close(descLectura);
     
 
