@@ -14,91 +14,37 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+
 struct mensaje{
     long tipo;
     pid_t pid;
     char state[3]; 
 };
 
-void initSem(int sem, int value){
-    if (semctl(sem, 0, SETVAL, value) == -1) {
-        perror("padre: semctl");
-        exit(1);
-    }
-}
+/**
+ * Inicializa un semaforo a un valor
+ */
+void initSem(int sem, int value);
 
-void waitSem(int sem){
-    struct sembuf op;
-    op.sem_num = 0;
-    op.sem_op = -1;  
-    op.sem_flg = 0;
-    if(semop(sem, &op, 1) == -1){
-        perror("padre: semop");
-        exit(1);
-    }
-    
-}
+/**
+ * Decrementa en 1 el valor de un semaforo
+ */
+void waitSem(int sem);
 
-void signalSem(int sem){
-    struct sembuf op;
-    op.sem_num = 0;
-    op.sem_op = 1;  
-    op.sem_flg = 0;
-    if(semop(sem, &op, 1) == -1){
-        perror("padre: semop");
-        exit(1);
-    }
-}
+/**
+ * Incrementa en 1 el valor de un semaforo
+ */
+void signalSem(int sem);
 
-void crearNHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){
-    
-    // crea N procesos hijos que ejecutaran HIJO
-    int pidCounter = 0; 
+/**
+ * Crea N procesos hijo utilizando fork
+ */
+void crearNHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem);
 
-    for(int i = 0; i < N; i++){
-
-        pid_t resFork = fork();
-        
-	if(resFork == -1){
-            perror("padre: fork");
-            exit(-1);
-        }else if(resFork == 0){	   	    
-            // Proceso Hijo          
-            char lectura[10];
-            char escritura[10];
-            sprintf(lectura, "%d", barrera[0]);      
-            sprintf(escritura, "%d", barrera[1]);      
-            execl("./Trabajo2/HIJO", "HIJO", argv0, lectura, escritura, NULL); 
-        }else{
-            // Proceso Padre   
-            waitSem(sem);
-            lista[pidCounter] = resFork;
-            pidCounter++;
-	    signalSem(sem);
-            
-        }	   
-    }
-}
-
-void matarProceso(int *K, pid_t pid, pid_t *lista, int sem) {
-    if (kill(pid, SIGTERM) == 0) {
-        printf("Señal SIGTERM enviada a %d\n", pid);
-	// Esperar a que el proceso hijo termine
-        waitpid(pid, 0, 0);                
-    }else{
-        perror("padre: sigterm");
-    }
-  
-    // actualizar lista
-    waitSem(sem);
-    for(int i = 0; i < 10; i++){
-	if(lista[i] == pid){ 
-            lista[i] = 0;
-            (*K)--;          
-        }
-    }   
-    signalSem(sem);
-}
+/**
+ * Mata un proceso mandandole la senal SIGTERM 
+ */
+void matarProceso(int *K, pid_t pid, pid_t *lista, int sem);
 
 
 int main(int argc, char *argv[]){
@@ -108,38 +54,33 @@ int main(int argc, char *argv[]){
     N = K = atoi(argv[1]);
     struct mensaje msgHijo;
 
-    // crea clave asociada a fichero ejecutable y letra 
+    // crear clave 
     key_t key = ftok(argv[0],'X');
 
-    // crear cola de mensajes "mensajes"
+    // crear cola de mensajes 
     int mensajes = msgget(key, IPC_CREAT | 0600);    
         if (mensajes == -1) {
         perror("Hijo: msgget");
         exit(-1);
     }
         
-    // crear región de memoria compartida "lista" de tamano N pids
+    // crear región de memoria compartida de tamano N pids
     // y enlazararla con un array con capacidad para N PIDs 
     int shrdMemId = shmget(key, N*sizeof(pid_t), IPC_CREAT | 0600);      
     pid_t *lista = (pid_t*)shmat(shrdMemId, NULL, 0);
 
-    // crea semáforo para proteger acceso a "lista" 
-    // lo iniciializa a 1 para exclusion mutua
+    // crea semáforo para proteger acceso a memoria compartida
+    // inicializar a 1 para exclusion mutua
     int sem = semget(key, 1, IPC_CREAT | 0600);  
     initSem(sem, 1);
 
-    // crear tuberia sin nombre "barrera"
+    // crear tuberia sin nombre 
     int barrera[2];
     if(pipe(barrera) == -1){
         perror("padre: pipe");
         exit(-1);
-    }
-    
-	while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 2, IPC_NOWAIT) != -1) {
+    }    
 
-            printf("Eliminando mensaje de %d \n", msgHijo.pid);
-                      
-        }
     // crea N procesos y espera a que se inicien todos
     crearNHijos(N, argv[0], lista, barrera, sem);
     usleep(20000);
@@ -149,22 +90,18 @@ int main(int argc, char *argv[]){
     // ------------- RONDAS --------------
     
     // mientras queden 2 o mas contendientes, se hara otra ronda     
-    while (K > 1){
-	
-	printf("\n ------ Hijos vivos: %d ------\n", K);
-        //fflush(stdout); 
-        //for(int i = 0; i < 10; i++){
-        //    waitSem(sem);
-	//    printf("Hijo %d: %d\n", i, lista[i]);
-        //    fflush(stdout);
-        //    signalSem(sem);
-        //}
-       
+    while (K > 1){               
         
         printf("\n ------ Iniciando ronda de ataques ------\n");
+        printf("Quedan %d hijos vivos\n", K);
+        for(int i = 0; i < 10; i++){
+            waitSem(sem);
+	    printf("Hijo %d: %d\n", i, lista[i]);
+            signalSem(sem);                      
+        }
         fflush(stdout); 
 
-        // manda un mensaje de 1 byte K veces 
+        // manda un mensaje de 1 byte por cada hijo vivo
 	char msg = 'P';
 	for (int i = 0; i < K; i++) {	    	   
 	    if(write(barrera[1], &msg, sizeof(msg)) < 0){
@@ -172,8 +109,7 @@ int main(int argc, char *argv[]){
             }
 	    printf("padre enviado mensaje\n");	
 	}
-	// esperar a que todos los hijos reciban mensaje
-        // y terminen sus rondas
+	// espera a que los hijos reciban mensaje y terminen sus rondas
         usleep(500000);	
 
 
@@ -200,18 +136,19 @@ int main(int argc, char *argv[]){
     // Escribir en resultado el ganador de la ronda
     char ganador[100]; 
     if(K == 1){ 
-       for(int i = 0; i < 10; i++){          
+       // 1 ganador
+       for(int i = 0; i < 10; i++){   
+       
             waitSem(sem);
-	    if(lista[i] != 0){
-     
+	    if(lista[i] != 0){     
                 int resultado = open("resultado", O_WRONLY);
                 snprintf(ganador, sizeof(ganador), "\n\nEl hijo %d ha ganado\n\n", lista[i]);
                 write(resultado, ganador, strlen(ganador));
-
             }            
             signalSem(sem);
         }
-    }else if(K == 0){	
+    }else if(K == 0){
+        // empate	
         strcpy(ganador, "\n\nEmpate\n\n");
         int resultado = open("resultado", O_WRONLY);        
         write(resultado, ganador, strlen(ganador));
@@ -220,6 +157,9 @@ int main(int argc, char *argv[]){
     
 
     // ------------- LIBERAR RECURSOS IPC --------------
+
+    printf("\nsemid : %d - msqid: %d\n", sem, mensajes);
+
     // cerrar cola de mensajes   
     msgctl(mensajes, IPC_RMID,0);
 
@@ -243,3 +183,89 @@ int main(int argc, char *argv[]){
     return 0;
 
 }
+
+
+void initSem(int sem, int value){
+    
+    if (semctl(sem, 0, SETVAL, value) == -1) {
+        perror("padre: semctl");
+        exit(1);
+    }
+}
+
+
+void waitSem(int sem){
+    
+    struct sembuf op;
+    op.sem_num = 0;
+    op.sem_op = -1;  
+    op.sem_flg = 0;
+    if(semop(sem, &op, 1) == -1){
+        perror("padre: semop");
+        exit(1);
+    }
+    
+}
+
+
+void signalSem(int sem){
+    
+    struct sembuf op;
+    op.sem_num = 0;
+    op.sem_op = 1;  
+    op.sem_flg = 0;
+    if(semop(sem, &op, 1) == -1){
+        perror("padre: semop");
+        exit(1);
+    }
+}
+
+
+void crearNHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){    
+    
+    int pidCounter = 0; 
+
+    for(int i = 0; i < N; i++){
+
+        pid_t resFork = fork();
+        
+	if(resFork == -1){
+            perror("padre: fork");
+            exit(-1);
+        }else if(resFork == 0){	   	    
+            // Proceso Hijo ejecuta HIJO          
+            char lectura[10];
+            char escritura[10];
+            sprintf(lectura, "%d", barrera[0]);      
+            sprintf(escritura, "%d", barrera[1]);      
+            execl("./Trabajo2/HIJO", "HIJO", argv0, lectura, escritura, NULL); 
+        }else{
+            // Proceso Padre va guardando los pids de los hijos en lista
+            waitSem(sem);	
+            lista[pidCounter] = resFork;
+            signalSem(sem);
+            pidCounter++;            
+        }	   
+    }
+}
+
+
+void matarProceso(int *K, pid_t pid, pid_t *lista, int sem) {
+    if (kill(pid, SIGTERM) == 0) {        
+	// Esperar a que el proceso hijo termine
+        waitpid(pid, 0, 0);                
+    }else{
+        perror("padre: sigterm");
+    }
+  
+    // actualizar lista    
+    for(int i = 0; i < 10; i++){
+        waitSem(sem);
+	if(lista[i] == pid){ 
+            lista[i] = 0;
+            (*K)--;          
+        }
+        signalSem(sem);
+    }       
+}
+
