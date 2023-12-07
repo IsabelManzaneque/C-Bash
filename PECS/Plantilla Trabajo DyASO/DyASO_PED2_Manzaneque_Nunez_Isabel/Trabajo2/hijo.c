@@ -119,7 +119,7 @@ void enviarMensajeAPadre(int mensajes){
 
     // Configurar el tipo de mensaje, el PID y la cadena
     struct mensaje msg;
-    msg.tipo = 1;  
+    msg.tipo = 2;  
     msg.pid = getpid();
     strcpy(msg.state, estado);
 
@@ -172,10 +172,10 @@ int main(int argc, char const *argv[]) {
     // ------------- RONDAS --------------
      
     
-    char buffer[10];
+    
     close(descEscritura);
     while(1){
-
+        char buffer[1];
         if(read(descLectura, buffer, sizeof(buffer)) > 0){       
 	    printf("hijo %d, mensaje recibido: %s\n", pid, buffer);            
              

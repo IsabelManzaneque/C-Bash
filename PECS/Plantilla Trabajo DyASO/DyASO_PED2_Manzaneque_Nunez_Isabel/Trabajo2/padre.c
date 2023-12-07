@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 struct mensaje{
     long tipo;
@@ -52,6 +54,7 @@ void crearNHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){
     
     // crea N procesos hijos que ejecutaran HIJO
     int pidCounter = 0; 
+
     for(int i = 0; i < N; i++){
 
         pid_t resFork = fork();
@@ -77,23 +80,24 @@ void crearNHijos(int N, char argv0[], pid_t *lista, int barrera[2], int sem){
     }
 }
 
-void matarProceso(int *K, pid_t pid, pid_t *lista) {
+void matarProceso(int *K, pid_t pid, pid_t *lista, int sem) {
     if (kill(pid, SIGTERM) == 0) {
         printf("Señal SIGTERM enviada a %d\n", pid);
 	// Esperar a que el proceso hijo termine
-        int estado;
-        wait(&estado);	         
+        waitpid(pid, 0, 0);                
     }else{
         perror("padre: sigterm");
     }
   
     // actualizar lista
+    waitSem(sem);
     for(int i = 0; i < 10; i++){
 	if(lista[i] == pid){ 
             lista[i] = 0;
             (*K)--;          
         }
     }   
+    signalSem(sem);
 }
 
 
@@ -108,11 +112,12 @@ int main(int argc, char *argv[]){
     key_t key = ftok(argv[0],'X');
 
     // crear cola de mensajes "mensajes"
-    int mensajes = msgget(key, IPC_CREAT | 0600);
+    int mensajes = msgget(key, IPC_CREAT | 0600);    
         if (mensajes == -1) {
         perror("Hijo: msgget");
         exit(-1);
     }
+        
     // crear región de memoria compartida "lista" de tamano N pids
     // y enlazararla con un array con capacidad para N PIDs 
     int shrdMemId = shmget(key, N*sizeof(pid_t), IPC_CREAT | 0600);      
@@ -130,14 +135,16 @@ int main(int argc, char *argv[]){
         exit(-1);
     }
     
-    // crea N procesos 
+    // crea N procesos y espera a que se inicien todos
     crearNHijos(N, argv[0], lista, barrera, sem);
-    close(barrera[0]);
+    usleep(20000);
+
+    
     
     // ------------- RONDAS --------------
     
     // mientras queden 2 o mas contendientes, se hara otra ronda     
-    //while (K > 1){
+    while (K > 1){
 	
 	printf("\n ------ Hijos vivos: %d ------\n", K);
         fflush(stdout); 
@@ -153,46 +160,65 @@ int main(int argc, char *argv[]){
         fflush(stdout); 
 
         // manda un mensaje de 1 byte K veces 
-
-	for (int i = 0; i < K; i++) {
-	    char msg[1];
-	    msg[0] = 'P';  
-	    write(barrera[1], msg, sizeof(msg));
-	    usleep(10000);
+	char msg = 'P';
+	for (int i = 0; i < K; i++) {	    	   
+	    if(write(barrera[1], &msg, sizeof(msg)) < 0){
+                perror("padre: write");
+            }	
 	}
-	// cieraa extremo escritura del padre
-        close(barrera[1]);   	
+	// esperar a que todos los hijos reciban mensaje
+        usleep(30000);	
 
-	// Padre recibe los mensajes de los hijos           
+
+	// Padre recibe los resultados de los hijos       
 	
-        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 1, IPC_NOWAIT) != -1) {
+        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 2, IPC_NOWAIT) != -1) {
         	
             // Imprimir el mensaje recibido
             printf("Padre %d recibe de %d: Tipo: %ld - Estado: %s\n", getpid(), msgHijo.pid, msgHijo.tipo, msgHijo.state);
            
   	
-            if(strcmp("KO", msgHijo.state) == 0){               
-                fflush(stdout);  
-                waitSem(sem);              
-                matarProceso(&K, msgHijo.pid,lista);
-	        signalSem(sem);
+            if(strcmp("KO", msgHijo.state) == 0){                       
+                matarProceso(&K, msgHijo.pid, lista, sem);    
             }            
 
             sleep(1);
         }
-    //}
+    }
     
-   
-    
+    // Escribir en resultado el ganador de la ronda
+    char ganador[100]; 
+    if(K == 1){ 
+       for(int i = 0; i < 10; i++){          
+            waitSem(sem);
+	    if(lista[i] != 0){
+     
+                int resultado = open("resultado", O_WRONLY);
+                snprintf(ganador, sizeof(ganador), "\n\nEl hijo %d ha ganado\n\n", lista[i]);
+                write(resultado, ganador, strlen(ganador));
+
+            }            
+            signalSem(sem);
+        }
+    }else if(K == 0){	
+        strcpy(ganador, "\n\nEmpate\n\n");
+        int resultado = open("resultado", O_WRONLY);        
+        write(resultado, ganador, strlen(ganador));
+    }
     
     
 
     // ------------- LIBERAR RECURSOS IPC --------------
-   
+    // cerrar cola de mensajes   
+    msgctl(mensajes, IPC_RMID,0);
+
+    // cerrar tuberia
+    close(barrera[0]);
+    close(barrera[1]); 
+
     // Desvincular memoria compartida
     //shmdt();
-    // borrar cola de mensajes
-    // msgctl(mensajes, IPC_RMID,0);
+    
 
     wait(0);
     printf("Finalizando padre\n");    
