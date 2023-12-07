@@ -135,6 +135,11 @@ int main(int argc, char *argv[]){
         exit(-1);
     }
     
+	while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 2, IPC_NOWAIT) != -1) {
+
+            printf("Eliminando mensaje de %d \n", msgHijo.pid);
+                      
+        }
     // crea N procesos y espera a que se inicien todos
     crearNHijos(N, argv[0], lista, barrera, sem);
     usleep(20000);
@@ -147,13 +152,13 @@ int main(int argc, char *argv[]){
     while (K > 1){
 	
 	printf("\n ------ Hijos vivos: %d ------\n", K);
-        fflush(stdout); 
-        for(int i = 0; i < 10; i++){
-            waitSem(sem);
-	    printf("Hijo %d: %d\n", i, lista[i]);
-            fflush(stdout);
-            signalSem(sem);
-        }
+        //fflush(stdout); 
+        //for(int i = 0; i < 10; i++){
+        //    waitSem(sem);
+	//    printf("Hijo %d: %d\n", i, lista[i]);
+        //    fflush(stdout);
+        //    signalSem(sem);
+        //}
        
         
         printf("\n ------ Iniciando ronda de ataques ------\n");
@@ -164,25 +169,31 @@ int main(int argc, char *argv[]){
 	for (int i = 0; i < K; i++) {	    	   
 	    if(write(barrera[1], &msg, sizeof(msg)) < 0){
                 perror("padre: write");
-            }	
+            }
+	    printf("padre enviado mensaje\n");	
 	}
 	// esperar a que todos los hijos reciban mensaje
-        usleep(30000);	
+        // y terminen sus rondas
+        usleep(500000);	
 
 
 	// Padre recibe los resultados de los hijos       
-	
-        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 2, IPC_NOWAIT) != -1) {
-        	
+	int counter = K;
+        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 2, 0) != -1) {
+                      
             // Imprimir el mensaje recibido
-            printf("Padre %d recibe de %d: Tipo: %ld - Estado: %s\n", getpid(), msgHijo.pid, msgHijo.tipo, msgHijo.state);
+           printf("Counter: %d -- Padre %d recibe de %d: Tipo: %ld - Estado: %s\n", counter, getpid(), msgHijo.pid, msgHijo.tipo, msgHijo.state);
            
   	
             if(strcmp("KO", msgHijo.state) == 0){                       
                 matarProceso(&K, msgHijo.pid, lista, sem);    
             }            
-
-            sleep(1);
+	    
+	    // Si ya ha recibido mensajes de todos los hijos sale del bucle
+            counter --;
+            if(counter == 0 ){
+                break;
+            }           
         }
     }
     
@@ -217,10 +228,16 @@ int main(int argc, char *argv[]){
     close(barrera[1]); 
 
     // Desvincular memoria compartida
-    //shmdt();
-    
+    shmdt(lista);
+    shmctl(shrdMemId, IPC_RMID,0);
 
-    wait(0);
+    // cerrar semaforo
+    semctl(sem, IPC_RMID,0);
+
+    //Mostramos semáforos y colas de mensajes activos
+    printf ("\nRecursos IPC activos:\n");
+    system("ipcs -sq");
+    
     printf("Finalizando padre\n");    
     fflush(stdout);    
     return 0;

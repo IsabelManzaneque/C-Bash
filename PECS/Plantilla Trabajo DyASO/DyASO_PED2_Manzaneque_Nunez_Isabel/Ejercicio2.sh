@@ -11,4 +11,6 @@ cat resultado &
 ./Trabajo2/PADRE 10
 #al acabar limpia todos los ficheros que ha creado
 rm -f resultado ./Trabajo2/PADRE ./Trabajo2/HIJO
-rm -f ./Trabajo2/PADRE ./Trabajo2/HIJO
+
+
+
