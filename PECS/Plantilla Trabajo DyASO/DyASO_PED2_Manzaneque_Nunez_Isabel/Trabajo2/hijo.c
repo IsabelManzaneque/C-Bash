@@ -68,7 +68,8 @@ int main(int argc, char const *argv[]) {
     
     // ------------- INICIALIZACION --------------   
     printf("Inicio hijo %d\n", getpid());
-    
+    fflush(stdout); 
+
     // Recuperar la clave
     key_t key = ftok(argv[1],'X');
     
@@ -79,21 +80,21 @@ int main(int argc, char const *argv[]) {
     // recuperar cola de mensajes
     int mensajes = msgget(key,0);
     if (mensajes == -1) {
-        perror("mensajes");
+        perror("hijo: mssget");
         exit(-1);
     }
 
     // recuperar semaforo
     int sem = semget(key, 0, 0);
     if (sem == -1) {
-        perror("semaforo");
+        perror("hijo: semget");
         exit(-1);
     }
 
     // recuperar memoria compartida
     int shrdMemId = shmget(key, 0, 0);      
     if (mensajes == -1) {
-        perror("memoriaCompartida");
+        perror("hijo: shmget");
         exit(-1);
     }
     pid_t *lista = (pid_t*)shmat(shrdMemId, NULL, 0);
@@ -106,7 +107,8 @@ int main(int argc, char const *argv[]) {
     while(1){
         char buffer[1];
         if(read(descLectura, buffer, sizeof(buffer)) > 0){       
-	    printf("hijo %d, mensaje recibido: %s\n", getpid(), buffer);                        
+	    printf("hijo %d recibe mensaje:  %s\n", getpid(), buffer);  
+            fflush(stdout);                      
             // si la la ronda de preparacion devuelve 0, ataca
 	    if(preparacion() == 0){	         
                 ataque(lista, sem);                 
@@ -180,7 +182,7 @@ void ataque(pid_t *lista, int sem){
      }   
      // envia SIGUSR1 al proceso victima
      if (kill(pidVictima, SIGUSR1) == 0) {
-	printf("\n%d Atacando al proceso %d\n", getpid(), pidVictima);      
+	printf("\n%d Atacando al proceso %d", getpid(), pidVictima);      
         fflush(stdout);     
      }else{
         perror("Hijo: ataque");           
@@ -223,8 +225,9 @@ void enviarMensajeAPadre(int mensajes){
     msg.pid = getpid();
     strcpy(msg.state, estado);
 
-    printf("Hijo %d enviando: Tipo: %ld - Estado: %s\n", msg.pid, msg.tipo, msg.state);
-           
+    printf("Hijo %d envia mensaje: Tipo - %ld, Estado - %s\n", msg.pid, msg.tipo, msg.state);
+    fflush(stdout); 
+       
     // Enviar el mensaje a la cola
     if (msgsnd(mensajes, &msg, sizeof(struct mensaje) - sizeof(long), 0) == -1) {
         perror("Hijo: msgsnd");

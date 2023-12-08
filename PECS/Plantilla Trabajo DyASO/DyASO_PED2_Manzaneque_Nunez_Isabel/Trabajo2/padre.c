@@ -14,7 +14,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
 struct mensaje{
     long tipo;
     pid_t pid;
@@ -60,18 +59,25 @@ int main(int argc, char *argv[]){
     // crear cola de mensajes 
     int mensajes = msgget(key, IPC_CREAT | 0600);    
         if (mensajes == -1) {
-        perror("Hijo: msgget");
+        perror("padre: msgget");
         exit(-1);
     }
         
     // crear región de memoria compartida de tamano N pids
     // y enlazararla con un array con capacidad para N PIDs 
-    int shrdMemId = shmget(key, N*sizeof(pid_t), IPC_CREAT | 0600);      
+    int shrdMemId = shmget(key, N*sizeof(pid_t), IPC_CREAT | 0600);  
+    if (shrdMemId == -1) {
+        perror("padre: shmget");
+        exit(-1);
+    }    
     pid_t *lista = (pid_t*)shmat(shrdMemId, NULL, 0);
 
-    // crea semáforo para proteger acceso a memoria compartida
-    // inicializar a 1 para exclusion mutua
+    // crea semáforo e inicializar a 1 para exclusion mutua
     int sem = semget(key, 1, IPC_CREAT | 0600);  
+        if (sem == -1) {
+        perror("padre: semget");
+        exit(-1);
+    }
     initSem(sem, 1);
 
     // crear tuberia sin nombre 
@@ -80,25 +86,26 @@ int main(int argc, char *argv[]){
         perror("padre: pipe");
         exit(-1);
     }    
-
-    // crea N procesos y espera a que se inicien todos
-    crearNHijos(N, argv[0], lista, barrera, sem);
-    usleep(20000);
-
-    
+       
     
     // ------------- RONDAS --------------
+
+    // crea N procesos y espera a que se inicien
+    crearNHijos(N, argv[0], lista, barrera, sem);
+    usleep(20000);
     
     // mientras queden 2 o mas contendientes, se hara otra ronda     
     while (K > 1){               
         
-        printf("\n ------ Iniciando ronda de ataques ------\n");
-        printf("Quedan %d hijos vivos\n", K);
+        printf("\n------ Iniciando ronda de ataques - quedan %d hijos vivos ------\n", K);   
+        fflush(stdout);   
         for(int i = 0; i < 10; i++){
             waitSem(sem);
 	    printf("Hijo %d: %d\n", i, lista[i]);
-            signalSem(sem);                      
+            signalSem(sem);   
+            fflush(stdout);                   
         }
+        printf("\n");
         fflush(stdout); 
 
         // manda un mensaje de 1 byte por cada hijo vivo
@@ -107,19 +114,21 @@ int main(int argc, char *argv[]){
 	    if(write(barrera[1], &msg, sizeof(msg)) < 0){
                 perror("padre: write");
             }
-	    printf("padre enviado mensaje\n");	
+	    printf("padre envia mensaje\n");	
+            fflush(stdout);
 	}
-	// espera a que los hijos reciban mensaje y terminen sus rondas
-        usleep(500000);	
+        printf("\n");
+        fflush(stdout); 
 
+	// espera a que los hijos reciban mensaje 
+        usleep(500000);	
 
 	// Padre recibe los resultados de los hijos       
 	int counter = K;
-        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 2, 0) != -1) {
-                      
-            // Imprimir el mensaje recibido
-           printf("Counter: %d -- Padre %d recibe de %d: Tipo: %ld - Estado: %s\n", counter, getpid(), msgHijo.pid, msgHijo.tipo, msgHijo.state);
-           
+        while(msgrcv(mensajes, &msgHijo, sizeof(struct mensaje) - sizeof(long), 2, 0) != -1) {                      
+
+           printf("Padre recibe mensaje de %d: Tipo: %ld - Estado: %s\n", msgHijo.pid, msgHijo.tipo, msgHijo.state);
+           fflush(stdout);
   	
             if(strcmp("KO", msgHijo.state) == 0){                       
                 matarProceso(&K, msgHijo.pid, lista, sem);    
@@ -159,6 +168,7 @@ int main(int argc, char *argv[]){
     // ------------- LIBERAR RECURSOS IPC --------------
 
     printf("\nsemid : %d - msqid: %d\n", sem, mensajes);
+    fflush(stdout); 
 
     // cerrar cola de mensajes   
     msgctl(mensajes, IPC_RMID,0);
@@ -176,6 +186,7 @@ int main(int argc, char *argv[]){
 
     //Mostramos semáforos y colas de mensajes activos
     printf ("\nRecursos IPC activos:\n");
+    fflush(stdout); 
     system("ipcs -sq");
     
     printf("Finalizando padre\n");    
@@ -183,6 +194,7 @@ int main(int argc, char *argv[]){
     return 0;
 
 }
+
 
 
 void initSem(int sem, int value){
