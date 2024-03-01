@@ -1,4 +1,4 @@
-# DyASO
+# C + Bash
 
 Proyectos en los que se practican algunos de los conceptos básicos de la administración y el diseño de sistemas operativos haciendo uso del lenguaje C y el lenguaje de script Bash, usando como plataforma el sistema operativo Linux.
 
